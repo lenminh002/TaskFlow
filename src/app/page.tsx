@@ -1,12 +1,10 @@
 import styles from "./page.module.css";
-import NavBar from "@/components/NavBar/NavBar";
 
 export default function Home() {
   return (
     <main className={styles.main}>
-      <NavBar />
+      <h1>Select a project</h1>
 
     </main>
-
   );
 }
