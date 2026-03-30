@@ -8,7 +8,7 @@
 .columns {
     display: flex;
     flex-direction: row;
-    gap: 1rem;
+    gap: 1.5rem;
     height: 100%;
 }
 
@@ -18,4 +18,25 @@
     gap: 1rem;
     height: 86vh;
     overflow-x: auto;
+}
+
+.add_column {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px dashed #ccc;
+    cursor: pointer;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: #aaa;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.add_column:hover {
+    border-color: #888;
+    color: #888;
 }

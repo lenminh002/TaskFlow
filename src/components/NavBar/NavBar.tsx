@@ -1,5 +1,8 @@
+'use client'
+
 import styles from "./NavBar.module.css";
 import Link from "next/link";
+import { useState } from 'react'
 
 const tasks = [
     { id: "1", name: "Task 1" },
@@ -10,6 +13,8 @@ const tasks = [
 
 
 export default function NavBar() {
+    const [active, setActive] = useState<string | null>(null)
+
     return (
         <nav className={styles.nav}>
             <div className={styles.header}>
@@ -25,10 +30,16 @@ export default function NavBar() {
             </div>
             <div className={styles.nav_items}>
                 {tasks.map((task) => (
-                    <Link href={`/tasks/${task.id}`} key={task.id} className={styles.nav_item}>
+                    <Link
+                        href={`/tasks/${task.id}`}
+                        key={task.id}
+                        className={`${styles.nav_item} ${active === task.id ? styles.nav_item_active : ''}`}
+                        onClick={() => setActive(task.id)}
+                    >
                         {task.name}
                     </Link>
                 ))}
+                <button className={styles.add_task}>+</button>
             </div>
         </nav>
     );

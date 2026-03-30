@@ -41,8 +41,37 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.9rem;
+    border: 2px solid #000000;
+
 }
 
 .nav_item:hover {
     background-color: #e0e0e0;
+
+}
+
+.nav_item_active {
+    background-color: #e0e0e0;
+    font-weight: 600;
+}
+
+
+.add_task {
+    width: 100%;
+    height: 36px;
+    border-radius: 4px;
+    border: 2px dashed #ccc;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: #aaa;
+    margin-top: 0.5rem;
+}
+
+.add_task:hover {
+    border-color: #888;
+    color: #888;
 }
