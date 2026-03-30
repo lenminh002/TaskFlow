@@ -21,6 +21,28 @@ export default function BoardContainer({
         // e.deltaY gives us the amount the scroll wheel moved vertically
         // If the user scrolls up or down (deltaY is not zero), we intercept it
         if (e.deltaY !== 0) {
+            // Check if the scroll originated from a vertically scrollable element (like a column)
+            let target = e.target as HTMLElement | null;
+            let isInsideScrollable = false;
+
+            while (target && target !== scrollRef.current) {
+                const style = window.getComputedStyle(target);
+                // If the element is set to scroll vertically, we shouldn't translate its vertical scroll
+                if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                    // Check if it actually has content to scroll
+                    if (target.scrollHeight > target.clientHeight) {
+                        isInsideScrollable = true;
+                        break;
+                    }
+                }
+                target = target.parentElement;
+            }
+
+            // If we are scrolling inside a column, let the native vertical scroll happen
+            if (isInsideScrollable) {
+                return;
+            }
+
             // Take the vertical scroll amount and apply it to the horizontal scroll position (scrollLeft) instead!
             scrollRef.current.scrollLeft += e.deltaY;
         }
