@@ -3,14 +3,7 @@
 import styles from "./NavBar.module.css";
 import Link from "next/link";
 import { useState } from 'react'
-
-const tasks = [
-    { id: "1", name: "Task 1" },
-    { id: "2", name: "Task 2" },
-    { id: "3", name: "Task 3" },
-    { id: "4", name: "Task 4" },
-];
-
+import { tasks } from "@/lib/data";
 
 export default function NavBar() {
     const [active, setActive] = useState<string | null>(null)
@@ -25,10 +18,10 @@ export default function NavBar() {
 
             </div>
             <div className={styles.nav_items}>
-                <search className={styles.search}>
+                <div className={styles.search}>
                     <input type="text" placeholder="Search tasks" />
                     <button>🔍</button>
-                </search>
+                </div>
                 {tasks.map((task) => (
                     <Link
                         href={`/tasks/${task.id}`}

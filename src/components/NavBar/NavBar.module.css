@@ -88,21 +88,21 @@
 
 
 .add_task {
-    width: 100%;
-    height: 36px;
-    border-radius: 4px;
-    border: 2px dashed #ccc;
+    padding: 0.5rem 0.75rem;
     cursor: pointer;
     font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    color: #aaa;
-    margin-top: 0.5rem;
+    border: 2px solid #000000;
+    box-shadow: 4px 4px 0px #000;
+    background-color: #ffffff;
+    margin-top: 1rem;
 }
 
 .add_task:hover {
-    border-color: #888;
-    color: #888;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.add_task:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #000;
 }
