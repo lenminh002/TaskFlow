@@ -1,9 +1,11 @@
 .column {
     background-color: #f5f5f5;
-    border-radius: 8px;
+    border-radius: 2px;
     padding: 1rem;
     overflow-y: auto;
-    width: 400px;
+    width: 30%;
+    flex-shrink: 0;
+
 }
 
 .column h1 {

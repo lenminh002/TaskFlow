@@ -1,9 +1,15 @@
 import styles from "./Column.module.css";
 
-export default function Column() {
+interface ColumnProps {
+    title?: string;
+    content?: string;
+}
+
+export default function Column({ title = "Column", content = "No content" }: ColumnProps) {
     return (
         <div className={styles.column}>
-            <h1>Column</h1>
+            <h1>{title}</h1>
+            <p>{content}</p>
         </div>
     );
 }

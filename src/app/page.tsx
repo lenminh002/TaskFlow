@@ -1,9 +1,7 @@
-import styles from "./page.module.css";
-
 export default function Home() {
   return (
 
-    <h1>Select a project</h1>
+    <h1>Select a project to start</h1>
 
   );
 }
