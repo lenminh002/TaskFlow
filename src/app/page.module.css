@@ -6,3 +6,9 @@
   height: 100vh;
   width: 100vw;
 }
+
+.columns {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
