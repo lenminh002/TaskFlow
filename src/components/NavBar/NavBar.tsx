@@ -18,17 +18,17 @@ export default function NavBar() {
     return (
         <nav className={styles.nav}>
             <div className={styles.header}>
-                <h1>TaskFlow</h1>
-                <p>Manage your tasks</p>
+                <h1 className={styles.title}>TaskFlow</h1>
+                <p className={styles.subtitle}>Manage your tasks efficiently</p>
                 <br />
+                <hr style={{ border: '1.5px solid #000000' }} />
+
+            </div>
+            <div className={styles.nav_items}>
                 <search className={styles.search}>
                     <input type="text" placeholder="Search tasks" />
                     <button>🔍</button>
                 </search>
-                <br />
-                <hr />
-            </div>
-            <div className={styles.nav_items}>
                 {tasks.map((task) => (
                     <Link
                         href={`/tasks/${task.id}`}

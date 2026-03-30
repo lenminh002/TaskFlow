@@ -1,10 +1,17 @@
 .column {
-    background-color: #f5f5f5;
-    border-radius: 2px;
+    background-color: #ffffff;
     padding: 1rem;
     overflow-y: auto;
     width: 30%;
     flex-shrink: 0;
+    box-shadow: 6px 6px 0px #000;
+    border: 2px solid #000;
+
+}
+
+.column:hover {
+    transform: translate(-2px, -6px);
+    box-shadow: 8px 12px 0px #000;
 
 }
 

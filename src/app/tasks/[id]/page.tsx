@@ -15,6 +15,7 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
                     <Column />
                     <Column />
                     <button className={styles.add_column}>+</button>
+                    <div style={{ minWidth: '8px', flexShrink: 0 }} />
                 </div>
             </BoardContainer>
         </div>

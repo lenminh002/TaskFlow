@@ -1,8 +1,9 @@
 .title {
-    font-size: 1.5rem;
+    font-size: 2rem;
     margin-top: 0;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.4rem;
     position: sticky;
+    text-align: center;
 }
 
 .columns {
@@ -10,6 +11,7 @@
     flex-direction: row;
     gap: 1.5rem;
     height: 100%;
+
 }
 
 .board {
@@ -18,25 +20,35 @@
     gap: 1rem;
     height: 86vh;
     overflow-x: auto;
+    padding: 2rem;
+    border: 2px solid #000;
+    background-color: #e4e4e4;
+    box-shadow: 0px 0px 5px #000;
+
 }
+
+
 
 .add_column {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    border: 2px dashed #ccc;
+    border: 2px dashed #000000;
     cursor: pointer;
     font-size: 1.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
-    color: #aaa;
+    color: #000000;
     flex-shrink: 0;
     align-self: center;
+
+
+
 }
 
 .add_column:hover {
-    border-color: #888;
-    color: #888;
+    border-color: #747474;
+    color: #747474;
 }
