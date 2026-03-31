@@ -21,24 +21,33 @@ export default function BoardContainer({
         // e.deltaY gives us the amount the scroll wheel moved vertically
         // If the user scrolls up or down (deltaY is not zero), we intercept it
         if (e.deltaY !== 0) {
-            // Check if the scroll originated from a vertically scrollable element (like a column)
+            // 1. Where did the scroll happen? We start at the exact deepest element hovered over.
             let target = e.target as HTMLElement | null;
             let isInsideScrollable = false;
 
+            // 2. We walk upwards through the HTML tree to see if any parent is scrollable.
+            //    We stop if we run out of parents or if we reach the main board container.
             while (target && target !== scrollRef.current) {
                 const style = window.getComputedStyle(target);
-                // If the element is set to scroll vertically, we shouldn't translate its vertical scroll
+                
+                // 3. Does this element's CSS allow it to scroll vertically? (Like our columns)
                 if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                    // Check if it actually has content to scroll
+                    
+                    // 4. Does it actually have enough content inside of it to show a scrollbar right now?
+                    // target.scrollHeight = the total hidden height of the content.
+                    // target.clientHeight = the visible height of the box on the screen.
                     if (target.scrollHeight > target.clientHeight) {
-                        isInsideScrollable = true;
-                        break;
+                        isInsideScrollable = true; // Yes! We're scrolling inside a column.
+                        break; // Stop climbing the tree.
                     }
                 }
+                
+                // Move up to the next parent element to check that one.
                 target = target.parentElement;
             }
 
-            // If we are scrolling inside a column, let the native vertical scroll happen
+            // 5. If we were inside a scrollable column, do absolutely nothing.
+            //    Let the browser scroll the column up/down natively.
             if (isInsideScrollable) {
                 return;
             }
