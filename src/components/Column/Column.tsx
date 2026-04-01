@@ -15,12 +15,8 @@ export default function Column({ title = "Column" }: ColumnProps) {
             <Card />
             <Card />
             <Card />
-            <Card />
-            <Card />
-            <Card />
-            <Card />
-            <Card />
-            <Card />
+            <hr style={{ border: '1px solid #000000' }}/>
+            <button className={styles.add_card}>+</button>
         </div>
     );
 }

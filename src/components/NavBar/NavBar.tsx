@@ -32,6 +32,9 @@ export default function NavBar() {
                         {task.name}
                     </Link>
                 ))}
+                
+                <br />
+                <hr style={{ border: '1px solid #000000' }}/>
                 <button className={styles.add_task}>+</button>
             </div>
         </nav>

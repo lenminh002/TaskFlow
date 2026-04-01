@@ -9,4 +9,13 @@ export const tasks = [
     { id: "8", name: "Task 8" },
     { id: "9", name: "Task 9" },
     { id: "10", name: "Task 10" },
+    { id: "11", name: "Task 11" },
+    { id: "12", name: "Task 12" },
+    { id: "13", name: "Task 13" },
+    { id: "14", name: "Task 14" },
+    { id: "15", name: "Task 15" },
+    { id: "16", name: "Task 16" },
+    { id: "17", name: "Task 17" },
+    { id: "18", name: "Task 18" },
+    { id: "19", name: "Task 19" },
 ];
