@@ -11,15 +11,15 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
     const taskName = task ? task.name : `Task: ${id}`;
 
     return (
-        <div>
+        <div className={styles.page}>
             <h1 className={styles.title}>{taskName}</h1>
 
             <BoardContainer className={styles.board}>
                 <div className={styles.columns}>
-                    <Column />
-                    <Column />
-                    <Column />
-                    <Column />
+                    <Column title="To Do" />
+                    <Column title="In Progress" />
+                    <Column title="In Review" />
+                    <Column title="Done" />
                     <button className={styles.add_column}>+</button>
                     <div style={{ minWidth: '8px', flexShrink: 0 }} />
                 </div>

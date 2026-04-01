@@ -23,7 +23,7 @@ export default function BoardContainer({
         if (e.deltaY !== 0) {
             // 1. Where did the scroll happen? We start at the exact deepest element hovered over.
             let target = e.target as HTMLElement | null;
-            let isInsideScrollable = false;
+            let scrollableTarget: HTMLElement | null = null;
 
             // 2. We walk upwards through the HTML tree to see if any parent is scrollable.
             //    We stop if we run out of parents or if we reach the main board container.
@@ -37,7 +37,7 @@ export default function BoardContainer({
                     // target.scrollHeight = the total hidden height of the content.
                     // target.clientHeight = the visible height of the box on the screen.
                     if (target.scrollHeight > target.clientHeight) {
-                        isInsideScrollable = true; // Yes! We're scrolling inside a column.
+                        scrollableTarget = target; // Yes! We found the nearest scrollable element.
                         break; // Stop climbing the tree.
                     }
                 }
@@ -46,9 +46,11 @@ export default function BoardContainer({
                 target = target.parentElement;
             }
 
-            // 5. If we were inside a scrollable column, do absolutely nothing.
-            //    Let the browser scroll the column up/down natively.
-            if (isInsideScrollable) {
+            // 5. If we found a nested scroll container (card content / column),
+            //    scroll it directly and stop here.
+            if (scrollableTarget) {
+                e.preventDefault();
+                scrollableTarget.scrollTop += e.deltaY;
                 return;
             }
 

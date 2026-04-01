@@ -1,12 +1,100 @@
 .card {
-    background-color: #ffffff;
     padding: 1rem;
-    border: 2px solid #000000;
-    box-shadow: 4px 4px 0px #000;
     margin-bottom: 1rem;
+    cursor: pointer;
+    background-color: #ffffff;
+    border: 2px solid #000000;
+    box-shadow: 4px 4px 0px rgb(117, 117, 2);
+    transition: all 0.1s ease;
 }
 
 .card:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
+    box-shadow: 6px 6px 0px rgb(173, 173, 0);
+}
+
+.card:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px rgb(117, 117, 2);
+    background-color: #e8e8e8;
+}
+
+.card_content {
+    margin-top: 0.4rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
+.modal {
+    width: min(100%, 28rem);
+    max-height: min(85dvh, 32rem);
+    overflow: auto;
+    padding: 1.25rem;
+    background-color: #ffffff;
+    border: 2px solid #000000;
+    box-shadow: 8px 8px 0px #000;
+}
+.modal:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 10px 10px 0px #000;
+}
+
+
+.modal_header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.modal_title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal_close {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    line-height: 1;
+    font-size: 1.5rem;
+    cursor: pointer;
+    background: #ffffff;
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px #000;
+    transition: all 0.1s ease;
+}
+
+.modal_close:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px #000;
+}
+
+.modal_close:active {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0px #000;
+}
+
+.modal_hr {
+    border: none;
+    border: 1px solid #000000;
+    margin: 0.75rem 0 1rem;
+}
+
+.modal_body {
+    font-size: 0.95rem;
+    line-height: 1.5;
 }

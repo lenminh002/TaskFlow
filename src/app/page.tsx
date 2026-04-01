@@ -4,7 +4,8 @@ export default function Home() {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      height: '93vh'
+      flex: 1,
+      minHeight: 0,
     }}>
       <h1>Select a project to start</h1>
     </div>
