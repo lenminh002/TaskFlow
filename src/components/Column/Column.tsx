@@ -7,10 +7,9 @@ export default function Column({ title, status, tasks = [] }: ColumnProps) {
         <div className={styles.column} data-status={status}>
             <h1>{title}</h1>
 
-            <Card/>
-            <Card/>
-            <Card/>
-
+            {tasks.map((task) => (
+                <Card key={task.id} task={task} />
+            ))}
             <hr style={{ border: '1px solid #000000' }}/>
             <button className={styles.add_card}>+</button>
         </div>
