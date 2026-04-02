@@ -62,4 +62,5 @@ export interface ColumnProps {
   title: string;
   status: ColumnStatus;
   tasks?: Task[];
+  onAddCard?: () => void;
 }

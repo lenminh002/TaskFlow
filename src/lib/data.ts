@@ -6,4 +6,5 @@ export const tasks: Task[] = [
     { id: "3", name: "Task 3", status: "in_progress", description: "In progress" },
     { id: "4", name: "Task 4", status: "in_review" },
     { id: "5", name: "Task 5", status: "done", description: "Shipped" },
+
 ];
