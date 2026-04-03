@@ -15,6 +15,7 @@ export type TaskPriority = "low" | "medium" | "high" | "urgent";
  */
 export interface Task {
   id: string;
+  boardId: string;
   name: string;
   description?: string;
   status?: ColumnStatus;
@@ -35,12 +36,11 @@ export interface Column {
 }
 
 /**
- * Board interface containing multiple columns
+ * Board interface — represents a project/board shown in the navbar
  */
 export interface Board {
   id: string;
   name: string;
-  columns: Column[];
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }

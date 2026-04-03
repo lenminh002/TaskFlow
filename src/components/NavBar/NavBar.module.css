@@ -126,3 +126,21 @@
     transform: translate(2px, 2px);
     box-shadow: 2px 2px 0px #000;
 }
+
+/* Skeleton loading placeholder */
+.skeleton {
+    height: 38px;
+    background: linear-gradient(90deg, #e0e0e0 25%, #d0d0d0 50%, #e0e0e0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border: 2px solid #000000;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}

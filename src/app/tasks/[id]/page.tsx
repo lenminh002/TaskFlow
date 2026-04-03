@@ -1,30 +1,34 @@
 import styles from "./page.module.css";
 import BoardContainer from "./BoardContainer";
 import BoardClient from "./BoardClient";
-import { fetchTasks } from "@/lib/actions";
+import { fetchCards } from "@/lib/actions";
+import { supabase } from "@/lib/supabase";
 
 // TaskPage is a Server Component — it runs on the server and fetches data before rendering.
-// The URL parameter `id` determines which task/board to display.
+// The URL parameter `id` is the board ID — it determines which board's cards to display.
 export default async function TaskPage({ params }: { params: { id: string } }) {
     const { id } = await params;
 
-    // Fetch tasks from Supabase
-    const tasks = await fetchTasks();
+    // Fetch the board name from Supabase
+    const { data: board } = await supabase
+        .from('boards')
+        .select('name')
+        .eq('id', id)
+        .single()
+    const boardName = board ? board.name : `Board: ${id}`;
 
-    // Find the task name corresponding to this ID
-    const task = tasks.find(t => t.id === id);
-    const taskName = task ? task.name : `Task: ${id}`;
+    // Fetch only cards that belong to this board
+    const cards = await fetchCards(id);
 
     return (
         <div className={styles.page}>
-            <h1 className={styles.title}>{taskName}</h1>
+            <h1 className={styles.title}>{boardName}</h1>
 
             {/* BoardContainer handles horizontal scrolling and wheel event interception */}
             <BoardContainer className={styles.board}>
-                {/* BoardClient is a client component that manages task state (add/remove).
-                    We pass the server-fetched tasks as initialTasks.
-                    The children (add_column button + spacer) render inside the .columns flex row. */}
-                <BoardClient initialTasks={tasks} className={styles.columns}>
+                {/* BoardClient manages card state (add/remove) for this specific board.
+                    We pass the board ID so new cards are linked to this board. */}
+                <BoardClient boardId={id} initialTasks={cards} className={styles.columns}>
                     {/* Button to add a new column (not yet functional) */}
                     <button className={styles.add_column}>+</button>
                     {/* Spacer to add right padding at the end of horizontal scroll */}
