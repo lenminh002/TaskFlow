@@ -47,20 +47,3 @@ export interface Board {
   updatedAt?: Date | string;
 }
 
-/**
- * Props for Card component
- */
-export interface CardProps {
-  task?: Task;
-  onClick?: () => void;
-}
-
-/**
- * Props for Column component
- */
-export interface ColumnProps {
-  title: string;
-  status: ColumnStatus;
-  tasks?: Task[];
-  onAddCard?: () => void;
-}

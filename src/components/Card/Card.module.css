@@ -8,6 +8,12 @@
     transition: all 0.1s ease;
 }
 
+.card_header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
 .card:hover {
     transform: translate(-2px, -2px);
     box-shadow: 6px 6px 0px rgb(173, 173, 0);
@@ -17,6 +23,29 @@
     transform: translate(2px, 2px);
     box-shadow: 2px 2px 0px rgb(117, 117, 2);
     background-color: #e8e8e8;
+}
+
+.card_close {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    line-height: 1;
+    font-size: 1.5rem;
+    cursor: pointer;
+    background: #ffffff;
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px #000;
+}
+
+.card_close:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px #000;
+}
+
+.card_close:active {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0px #000;
 }
 
 .card_content {
@@ -45,6 +74,7 @@
     border: 2px solid #000000;
     box-shadow: 8px 8px 0px #000;
 }
+
 .modal:hover {
     transform: translate(-2px, -2px);
     box-shadow: 10px 10px 0px #000;
@@ -75,7 +105,6 @@
     background: #ffffff;
     border: 2px solid #000000;
     box-shadow: 3px 3px 0px #000;
-    transition: all 0.1s ease;
 }
 
 .modal_close:hover {
