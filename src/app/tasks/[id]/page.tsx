@@ -1,14 +1,17 @@
 import styles from "./page.module.css";
 import BoardContainer from "./BoardContainer";
 import BoardClient from "./BoardClient";
-import { tasks } from "@/lib/data";
+import { fetchTasks } from "@/lib/actions";
 
 // TaskPage is a Server Component — it runs on the server and fetches data before rendering.
 // The URL parameter `id` determines which task/board to display.
 export default async function TaskPage({ params }: { params: { id: string } }) {
     const { id } = await params;
 
-    // Find the task name corresponding to this ID from our shared data
+    // Fetch tasks from Supabase
+    const tasks = await fetchTasks();
+
+    // Find the task name corresponding to this ID
     const task = tasks.find(t => t.id === id);
     const taskName = task ? task.name : `Task: ${id}`;
 

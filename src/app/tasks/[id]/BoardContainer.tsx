@@ -1,5 +1,4 @@
-"use client"; // Marks this component to run only in the browser (client-side) because it uses DOM events like scroll
-
+"use client";
 import React, { useRef } from "react";
 
 // BoardContainer wrap the components we want to apply horizontal scroll to
@@ -29,10 +28,10 @@ export default function BoardContainer({
             //    We stop if we run out of parents or if we reach the main board container.
             while (target && target !== scrollRef.current) {
                 const style = window.getComputedStyle(target);
-                
+
                 // 3. Does this element's CSS allow it to scroll vertically? (Like our columns)
                 if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                    
+
                     // 4. Does it actually have enough content inside of it to show a scrollbar right now?
                     // target.scrollHeight = the total hidden height of the content.
                     // target.clientHeight = the visible height of the box on the screen.
@@ -41,7 +40,7 @@ export default function BoardContainer({
                         break; // Stop climbing the tree.
                     }
                 }
-                
+
                 // Move up to the next parent element to check that one.
                 target = target.parentElement;
             }

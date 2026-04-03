@@ -22,8 +22,6 @@ export interface Task {
   createdAt?: Date | string;
   updatedAt?: Date | string;
   dueDate?: Date | string;
-  assignee?: string;
-  tags?: string[];
 }
 
 /**

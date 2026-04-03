@@ -1,7 +1,8 @@
-"use client"; // This component uses React state (useState), so it must run on the client
+"use client";
 
 import { useState } from "react";
 import Column from "@/components/Column/Column";
+import { addTask as addTaskToDb, removeTask as removeTaskFromDb } from "@/lib/actions";
 import type { Task, ColumnStatus } from "@/type/types";
 
 // Define the 4 columns that make up the Kanban board.
@@ -20,20 +21,36 @@ export default function BoardClient({ initialTasks, className, children }: { ini
     const [tasks, setTasks] = useState<Task[]>(initialTasks);
 
     // Creates a new task with a unique ID and adds it to the given column.
-    // crypto.randomUUID() generates a unique string like "3b241101-e2bb-4d7a-8613-e2e0927584a6"
-    function addTask(status: ColumnStatus) {
-        const newTask: Task = {
+    async function addTask(status: ColumnStatus) {
+        const newTask = {
             id: crypto.randomUUID(),
             name: "New Task",
             status: status,
         };
-        // Spread the previous tasks and add the new one at the end
+        // Optimistically update UI
         setTasks((prev) => [...prev, newTask]);
+
+        // Persist to Supabase
+        const result = await addTaskToDb({ id: newTask.id, name: newTask.name, status: newTask.status });
+        if (!result) {
+            // Rollback if insert failed
+            setTasks((prev) => prev.filter((t) => t.id !== newTask.id));
+        }
     }
 
     // Removes a task by filtering it out of the tasks array by its ID
-    function removeTask(taskId: string) {
+    async function removeTask(taskId: string) {
+        // Save for rollback
+        const prevTasks = tasks;
+        // Optimistically update UI
         setTasks((prev) => prev.filter((task) => task.id !== taskId));
+
+        // Persist to Supabase
+        const success = await removeTaskFromDb(taskId);
+        if (!success) {
+            // Rollback if delete failed
+            setTasks(prevTasks);
+        }
     }
 
     return (
@@ -52,7 +69,6 @@ export default function BoardClient({ initialTasks, className, children }: { ini
                     onRemoveCard={removeTask}
                 />
             ))}
-            {/* children contains the add_column button and spacer from page.tsx */}
             {children}
         </div>
     );
