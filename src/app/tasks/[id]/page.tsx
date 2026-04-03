@@ -1,6 +1,7 @@
 import styles from "./page.module.css";
 import BoardContainer from "./BoardContainer";
 import BoardClient from "./BoardClient";
+import EditableTitle from "./EditableTitle";
 import { fetchCards } from "@/lib/actions";
 import { supabase } from "@/lib/supabase";
 
@@ -22,7 +23,8 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
 
     return (
         <div className={styles.page}>
-            <h1 className={styles.title}>{boardName}</h1>
+            {/* Click the title to rename the board */}
+            <EditableTitle boardId={id} initialName={boardName} />
 
             {/* BoardContainer handles horizontal scrolling and wheel event interception */}
             <BoardContainer className={styles.board}>

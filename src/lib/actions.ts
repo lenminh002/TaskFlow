@@ -137,3 +137,20 @@ export async function updateCardStatus(id: string, status: ColumnStatus): Promis
 
     return true
 }
+
+/**
+ * Update a board's name
+ */
+export async function updateBoardName(id: string, name: string): Promise<boolean> {
+    const { error } = await supabase
+        .from('boards')
+        .update({ name })
+        .eq('id', id)
+
+    if (error) {
+        console.error('Error updating board name:', error.message)
+        return false
+    }
+
+    return true
+}
