@@ -55,6 +55,35 @@ export default function BoardClient({ boardId, initialTasks, className, children
         }
     }
 
+    // Update specific fields of a task
+    async function updateTask(id: string, updates: Partial<Task>) {
+        // Optimistically update the UI
+        setTasks((prev) =>
+            prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
+        );
+
+        // We only care about description, priority, and due_date for the database action
+        // mapping back camelCase to snake_case for DB
+        const dbUpdates: any = {};
+        if (updates.description !== undefined) dbUpdates.description = updates.description;
+        if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
+        if (updates.dueDate !== undefined) {
+            // Convert Date object to ISO string if it's a Date, or pass through the string
+            dbUpdates.due_date = updates.dueDate instanceof Date
+                ? updates.dueDate.toISOString()
+                : updates.dueDate;
+        }
+
+        const { updateCardDetails } = await import("@/lib/actions");
+        const result = await updateCardDetails(id, dbUpdates);
+
+        // If it failed, we'd ideally rollback via a refetch or keeping old state
+        // For simplicity, we just log it here
+        if (!result) {
+            console.error("Failed to update task details");
+        }
+    }
+
     return (
         <div className={className}>
             {/* Render one Column for each board column definition */}
@@ -67,6 +96,8 @@ export default function BoardClient({ boardId, initialTasks, className, children
                     tasks={tasks.filter((t) => t.status === status)}
                     // When the "+" button is clicked, the Column modal provides the name
                     onAddCard={(name) => addTask(status, name)}
+                    // When a card's fields are edited
+                    onUpdateCard={(id, updates) => updateTask(id, updates)}
                     // When the "×" button is clicked on a card, remove that card
                     onRemoveCard={removeTask}
                 />

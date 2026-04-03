@@ -14,12 +14,13 @@ interface ColumnProps {
     status: ColumnStatus;                       // Status key used as a data attribute for styling/filtering
     tasks?: Task[];                             // Array of tasks to render as cards inside this column
     onAddCard?: (name: string) => void;         // Callback triggered with the card name from the modal
+    onUpdateCard?: (id: string, updates: Partial<Task>) => void; // Callback to handle card property updates
     onRemoveCard?: (id: string) => void;        // Callback triggered when a card's "×" button is clicked
 }
 
 // Column represents a single vertical lane on the Kanban board.
 // It receives its tasks and callbacks from BoardClient (the parent).
-export default function Column({ title, status, tasks = [], onAddCard, onRemoveCard }: ColumnProps) {
+export default function Column({ title, status, tasks = [], onAddCard, onUpdateCard, onRemoveCard }: ColumnProps) {
     const { isOpen, open, close } = useModal();
     const [cardName, setCardName] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
@@ -89,6 +90,7 @@ export default function Column({ title, status, tasks = [], onAddCard, onRemoveC
                     <Card
                         key={task.id}
                         task={task}
+                        onUpdateCard={onUpdateCard}
                         onRemoveCard={onRemoveCard}
                     />
                 ))}

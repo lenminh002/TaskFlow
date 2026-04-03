@@ -10,15 +10,34 @@ import styles from "./Card.module.css";
 interface CardProps {
     task?: Task;                            // The task data to display on this card
     onClick?: () => void;                   // Optional callback when the card is clicked (before opening modal)
+    onUpdateCard?: (id: string, updates: Partial<Task>) => void; // Callback to update card properties
     onRemoveCard?: (id: string) => void;    // Callback to remove this card from the board
+}
+
+// Format a date value into a readable string
+function formatDate(value?: Date | string): string | null {
+    if (!value) return null;
+    const date = typeof value === "string" ? new Date(value) : value;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+// Map priority values to display labels
+function priorityLabel(priority?: string): string | null {
+    if (!priority) return null;
+    const labels: Record<string, string> = {
+        low: "🟢 Low",
+        medium: "🟡 Medium",
+        high: "🟠 High",
+        urgent: "🔴 Urgent",
+    };
+    return labels[priority] ?? priority;
 }
 
 // Card represents a single task on the Kanban board.
 // Clicking the card body opens a detail modal; clicking "×" removes the card.
-export default function Card({ task, onClick, onRemoveCard }: CardProps) {
+export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: CardProps) {
     const { isOpen, open, close } = useModal();     // Custom hook to manage modal open/close state
     const title = task?.name ?? "Task";             // Fallback to "Task" if no name is provided
-    const description = task?.description ?? "Description"; // Same as title
 
     // Allow users to close the modal by pressing the Escape key
     useEscapeKey(close, isOpen);
@@ -27,6 +46,12 @@ export default function Card({ task, onClick, onRemoveCard }: CardProps) {
     const handleOpen = () => {
         onClick?.();    // Call the optional parent onClick if provided
         open();         // Open the detail modal
+    };
+
+    const handleUpdate = (updates: Partial<Task>) => {
+        if (task?.id && onUpdateCard) {
+            onUpdateCard(task.id, updates);
+        }
     };
 
     // ----- Modal (rendered via portal into document.body) -----
@@ -57,7 +82,56 @@ export default function Card({ task, onClick, onRemoveCard }: CardProps) {
                     </div>
                     <hr className={styles.modal_hr} />
                     <div className={styles.modal_body}>
-                        <p>{description}</p>
+                        {/* Description */}
+                        <div className={styles.modal_field}>
+                            <span className={styles.modal_label}>Description</span>
+                            <textarea
+                                className={styles.modal_textarea}
+                                defaultValue={task?.description || ""}
+                                placeholder="Add a more detailed description..."
+                                onBlur={(e) => handleUpdate({ description: e.target.value })}
+                            />
+                        </div>
+
+                        {/* Priority */}
+                        <div className={styles.modal_field}>
+                            <span className={styles.modal_label}>Priority</span>
+                            <select
+                                className={styles.modal_select}
+                                defaultValue={task?.priority || ""}
+                                onChange={(e) => handleUpdate({ priority: e.target.value as any })}
+                            >
+                                <option value="">None</option>
+                                <option value="low">🟢 Low</option>
+                                <option value="medium">🟡 Medium</option>
+                                <option value="high">🟠 High</option>
+                                <option value="urgent">🔴 Urgent</option>
+                            </select>
+                        </div>
+
+                        {/* Status */}
+                        <div className={styles.modal_field}>
+                            <span className={styles.modal_label}>Status</span>
+                            <p className={styles.status_badge}>{task?.status?.replace("_", " ") ?? "—"}</p>
+                        </div>
+
+                        {/* Due Date */}
+                        <div className={styles.modal_field}>
+                            <span className={styles.modal_label}>Due Date</span>
+                            <input
+                                type="date"
+                                className={styles.modal_input}
+                                // value requires YYYY-MM-DD
+                                defaultValue={task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ""}
+                                onChange={(e) => handleUpdate({ dueDate: e.target.value ? new Date(e.target.value) : undefined })}
+                            />
+                        </div>
+
+                        {/* Created At */}
+                        <div className={styles.modal_field}>
+                            <span className={styles.modal_label}>Created</span>
+                            <p>{formatDate(task?.createdAt) || "—"}</p>
+                        </div>
                     </div>
                 </div>
             </div>,
@@ -70,7 +144,6 @@ export default function Card({ task, onClick, onRemoveCard }: CardProps) {
             <div
                 className={styles.card}
                 onClick={handleOpen}
-
             >
                 <div className={styles.card_header}>
                     <h3>{title}</h3>
@@ -92,7 +165,11 @@ export default function Card({ task, onClick, onRemoveCard }: CardProps) {
                 <br />
                 <hr />
                 <div className={styles.card_content}>
-                    <p>{description}</p>
+                    {task?.description && <p className={styles.card_description}>{task.description}</p>}
+                    <div className={styles.card_meta}>
+                        {task?.priority && <span className={styles.card_tag}>{priorityLabel(task.priority)}</span>}
+                        {task?.dueDate && <span className={styles.card_tag}>📅 {formatDate(task.dueDate)}</span>}
+                    </div>
                 </div>
             </div>
             {modal}
