@@ -22,11 +22,11 @@ export default function BoardClient({ boardId, initialTasks, className, children
 
     // Creates a new card with a unique ID and adds it to the given column.
     // The card is linked to this board via boardId.
-    async function addTask(status: ColumnStatus) {
+    async function addTask(status: ColumnStatus, name: string) {
         const newTask: Task = {
             id: crypto.randomUUID(),
             boardId: boardId,
-            name: "New Task",
+            name: name,
             status: status,
         };
         // Optimistically update UI
@@ -65,8 +65,8 @@ export default function BoardClient({ boardId, initialTasks, className, children
                     status={status}
                     // Only pass cards that belong to this column's status
                     tasks={tasks.filter((t) => t.status === status)}
-                    // When the "+" button is clicked, add a card to this column
-                    onAddCard={() => addTask(status)}
+                    // When the "+" button is clicked, the Column modal provides the name
+                    onAddCard={(name) => addTask(status, name)}
                     // When the "×" button is clicked on a card, remove that card
                     onRemoveCard={removeTask}
                 />

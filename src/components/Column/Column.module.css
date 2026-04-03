@@ -43,3 +43,114 @@
     transform: translate(2px, 2px);
     box-shadow: 2px 2px 0px #000;
 }
+
+/* ─── Modal ─── */
+
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
+.modal {
+    width: min(100%, 24rem);
+    padding: 1.25rem;
+    background-color: #ffffff;
+    border: 2px solid #000000;
+    box-shadow: 8px 8px 0px #000;
+}
+
+.modal_header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.modal_title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal_close {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    line-height: 1;
+    font-size: 1.5rem;
+    cursor: pointer;
+    background: #ffffff;
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px #000;
+}
+
+.modal_close:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px #000;
+}
+
+.modal_close:active {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0px #000;
+}
+
+.modal_hr {
+    border: none;
+    border-top: 1px solid #000000;
+    margin: 0.75rem 0 1rem;
+}
+
+.modal_body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.modal_label {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.modal_input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px #000;
+    outline: none;
+    transition: all 0.1s ease;
+}
+
+.modal_input:focus {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px #000;
+}
+
+.modal_submit {
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: #000000;
+    color: #ffffff;
+    border: 2px solid #000000;
+    box-shadow: 4px 4px 0px #333;
+    transition: all 0.1s ease;
+}
+
+.modal_submit:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #333;
+}
+
+.modal_submit:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #333;
+}
