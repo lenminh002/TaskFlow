@@ -1,54 +1,74 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useModal } from "@/hooks/useModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import styles from "./Column.module.css";
 import Card from "@/components/Card/Card";
 import type { Task, ColumnStatus } from "@/type/types";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useDroppable } from "@dnd-kit/core";
 
 /**
  * @file Column.tsx
  * @description Renders a single vertical lane in the Kanban board.
- * @details Manages its own add-card modal and acts as an HTML5 drop zone, propagating actions to BoardClient.
+ * @details Implements @dnd-kit's SortableContext for internal list sorting and acts as a generic Droppable container.
  */
-
-// Column-specific props
-interface ColumnProps {
-    /** Display name at the top (e.g. "To Do") */
-    title: string;                              
-    /** Status key used for logical filtering (e.g. "todo") */
-    status: ColumnStatus;                       
-    /** Tasks to render inside this column */
-    tasks?: Task[];                             
-    /** Callback for modal form submission */
-    onAddCard?: (name: string) => void;         
-    /** Propagates drag-and-drop or detail changes */
-    onUpdateCard?: (id: string, updates: Partial<Task>) => void; 
-    /** Propagates card removal */
-    onRemoveCard?: (id: string) => void;        
-}
 
 /**
- * Vertical Kanban lane rendering cards and a "+" button modal for new tasks.
+ * Interface detailing explicit inputs for the Column component.
+ * @param title - The readable title displayed at the top of the column.
+ * @param status - The programmatic `ColumnStatus` bound to tasks sitting inside this column.
+ * @param tasks - The array of tasks designated to this column.
+ * @param onAddCard - Callback fired when a new task is created inside this column.
+ * @param onUpdateCard - Callback fired when a child task inside this column is edited.
+ * @param onRemoveCard - Callback fired when a child task inside this column is deleted.
  */
+interface ColumnProps {
+    title: string;
+    status: ColumnStatus;
+    tasks?: Task[];
+    onAddCard?: (name: string) => void;
+    onUpdateCard?: (id: string, updates: Partial<Task>) => void;
+    onRemoveCard?: (id: string) => void;
+}
+
 export default function Column({ title, status, tasks = [], onAddCard, onUpdateCard, onRemoveCard }: ColumnProps) {
     const { isOpen, open, close } = useModal();
     const [cardName, setCardName] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Bind the Escape key to close the modal if it is actively open
+    // The useDroppable hook registers this entire column container as a valid target for dragged elements.
+    // The `isOver` boolean provides styling feedback when a card is actively hovering in its airspace.
+    const { setNodeRef, isOver } = useDroppable({
+        id: status,
+        data: {
+            type: "Column",
+            status,
+        },
+    });
+
+    // Memoizes the list of task IDs. @dnd-kit's SortableContext requires a flat array of unique identifiers 
+    // to map dragged elements correctly in its visual tree. useMemo prevents unnecessary re-renders.
+    const taskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
+
     useEscapeKey(close, isOpen);
 
-    // Auto-focus the input field shortly after the modal portal mounts to the DOM
+    // Automatically focuses the text input cursor inside the modal when the user opens "New Card".
+    // A 50ms delay is artificially injected because createPortal takes a split-second to mount the DOM node natively.
     useEffect(() => {
         if (isOpen) {
             setTimeout(() => inputRef.current?.focus(), 50);
         }
     }, [isOpen]);
 
-    // Submit the normalized card name upstream to the BoardClient for database insertion
+    /**
+     * Triggered when the user submits the "New Card" form.
+     * Prevents empty submissions by trimming whitespace. 
+     * If valid, it dynamically invokes the parent `onAddCard` callback (passing the value upward),
+     * resets the local input buffer, and closes the modal view.
+     */
     function handleSubmit() {
         const trimmed = cardName.trim();
         if (!trimmed) return;
@@ -57,7 +77,6 @@ export default function Column({ title, status, tasks = [], onAddCard, onUpdateC
         close();
     }
 
-    // Render the new-card modal globally using a portal to overlay the entire view
     const modal =
         isOpen &&
         createPortal(
@@ -96,39 +115,30 @@ export default function Column({ title, status, tasks = [], onAddCard, onUpdateC
     return (
         <>
             <div 
+                ref={setNodeRef}
                 className={styles.column} 
                 data-status={status}
-                onDragOver={(e) => {
-                    e.preventDefault();
-                    (e.currentTarget as HTMLElement).style.backgroundColor = '#f0f0f0';
-                }}
-                onDragLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = '';
-                }}
-                onDrop={(e) => {
-                    e.preventDefault();
-                    (e.currentTarget as HTMLElement).style.backgroundColor = '';
-                    const taskId = e.dataTransfer.getData("text/plain");
-                    if (taskId && onUpdateCard) {
-                        onUpdateCard(taskId, { status: status });
-                    }
-                }}
+                style={{ backgroundColor: isOver ? '#f0f0f0' : '' }}
             >
                 <h1>{title}</h1>
 
-                {/* Render a Card for each task in this column */}
-                {tasks.map((task) => (
-                    <Card
-                        key={task.id}
-                        task={task}
-                        onUpdateCard={onUpdateCard}
-                        onRemoveCard={onRemoveCard}
-                    />
-                ))}
+                {/* 
+                  SortableContext manages the ordered list of items within this specific column. 
+                  It correlates the array of task IDs to their rendered Card components.
+                */}
+                <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+                    {tasks.map((task) => (
+                        <Card
+                            key={task.id}
+                            task={task}
+                            onUpdateCard={onUpdateCard}
+                            onRemoveCard={onRemoveCard}
+                        />
+                    ))}
+                </SortableContext>
 
                 <hr style={{ border: '1px solid #000000' }} />
 
-                {/* "+" button to open the add card modal */}
                 <button className={styles.add_card} onClick={open}>+</button>
             </div>
             {modal}

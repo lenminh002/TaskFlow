@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NavBar from "@/components/NavBar/NavBar";
 
-// Load Google Fonts and assign them to CSS variables so they can be used throughout the app
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -14,14 +13,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Page metadata used by Next.js for SEO (title tag, meta description, etc.)
 export const metadata: Metadata = {
   title: "TaskFlow",
   description: "TaskFlow is a task management application",
 };
 
-// RootLayout wraps every page in the app.
-// It provides the HTML shell, global styles, fonts, and the persistent NavBar sidebar.
 export default function RootLayout({
   children,
 }: Readonly<{

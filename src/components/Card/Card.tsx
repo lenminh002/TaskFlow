@@ -6,32 +6,47 @@ import { useModal } from "@/hooks/useModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import type { Task } from "@/type/types";
 import styles from "./Card.module.css";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 /**
  * @file Card.tsx
  * @description Draggable task card with an editable detail modal.
- * @details Displays task summary on the board. Clicking opens a modal for editing details (description, priority, due date). Uses local state buffering to save explicitly.
+ * @details Wraps the generic card markup with @dnd-kit's useSortable hook, enabling physical dragging semantics, CSS transforms, and sorting listeners.
  */
 
-// Card prop definitions mapped to external APIs
+/**
+ * Interface configuring the Card component rendering and interactions.
+ * @param task - The full Task object supplying rendering data (title, status, due date, etc).
+ * @param onClick - Interceptor callback fired when the card is clicked (prior to the default modal open).
+ * @param onUpdateCard - Callback fired when the user modifies data inside the modal.
+ * @param onRemoveCard - Callback fired when the user clicks the delete (X) badge.
+ */
 interface CardProps {
     task?: Task;
-    /** Click handler, typically for modal opening */
     onClick?: () => void;
-    /** Parent callback to mutate card state upstream */
     onUpdateCard?: (id: string, updates: Partial<Task>) => void;
-    /** Callback to remove card globally */
     onRemoveCard?: (id: string) => void;
 }
 
-/** Formats a date or string into "Mon DD, YYYY" format */
+/**
+ * Utility Function: Formats a JS Date object or raw timestamp string into a readable format.
+ * Transforms `2024-04-05T...` into "Apr 5, 2024".
+ * @param value - The raw Date object or ISO string timeline.
+ * @returns An American-formatted localized string, or null if undefined.
+ */
 function formatDate(value?: Date | string): string | null {
     if (!value) return null;
     const date = typeof value === "string" ? new Date(value) : value;
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-/** Translates raw priority strings into visual labels */
+/**
+ * Utility Function: Maps raw database enum variants to user-friendly emoji badges.
+ * Provides a highly scannable visual identifier on the surface of the Card.
+ * @param priority - The raw priority string ("low", "medium", "high", "urgent").
+ * @returns The decorated label including its emoji prefix.
+ */
 function priorityLabel(priority?: string): string | null {
     if (!priority) return null;
     const labels: Record<string, string> = {
@@ -43,19 +58,34 @@ function priorityLabel(priority?: string): string | null {
     return labels[priority] ?? priority;
 }
 
-/**
- * Draggable card component encapsulating its own edit modal workflow.
- */
 export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: CardProps) {
     const { isOpen, open, close } = useModal();
     const title = task?.name ?? "Task";
 
-    // Local buffered state for editing
     const [localDesc, setLocalDesc] = useState(task?.description || "");
     const [localPriority, setLocalPriority] = useState(task?.priority || "");
     const [localDueDate, setLocalDueDate] = useState(task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "");
 
-    // Sync local state when the modal opens to ensure any new external database values are displayed
+    // Connects the component to the dnd-kit Sortable ecosystem.
+    // 'attributes' and 'listeners' govern keyboard accessibility and pointer interactions.
+    // 'transform' maps the physical layout shift coordinates while 'isDragging' gives conditional opacity styling.
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: task?.id || "",
+        data: {
+            type: "Task",
+            task,
+        },
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+    };
+
+    // Modal Lifecycle Hook: Whenever the user opens the modal or the parent `task` prop changes,
+    // this hook forcefully overrides the temporary modal inputs with the most up-to-date accurate database data.
+    // This solves "stale state" issues if you open the modal quickly after another computer updated the same card.
     useEffect(() => {
         if (isOpen) {
             setLocalDesc(task?.description || "");
@@ -64,16 +94,23 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
         }
     }, [isOpen, task]);
 
-    // Bind the Escape key to close the modal if it's currently open
     useEscapeKey(close, isOpen);
 
-    // Trigger the parent's generic onClick explicitly before opening the detail edit modal
+    /**
+     * Intercepts the Card click. 
+     * Since the card is technically a draggable dnd-kit zone, we safely invoke the modal open 
+     * programmatically to prevent colliding drag behaviors.
+     */
     const handleOpen = () => {
         onClick?.();
         open();
     };
 
-    // Bundle all locally edited fields and dispatch them to the parent for DB updating before closing the modal
+    /**
+     * Triggered inside the Modal when the user hits "Save Changes".
+     * Validates the ID exists, constructs a subset Partial<Task> payload mapping to the inputs,
+     * fires it up the tree to `onUpdateCard`, and visually slides the modal closed immediately.
+     */
     const handleSave = () => {
         if (task?.id && onUpdateCard) {
             onUpdateCard(task.id, {
@@ -85,50 +122,24 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
         close();
     };
 
-    // Provide a full-page modal using a React Portal so the overlay breaks out of the card's local CSS positioning
     const modal =
         isOpen &&
         createPortal(
-            <div
-                className={styles.backdrop}
-                onClick={close}
-            >
-                <div
-                    className={styles.modal}
-                    onClick={(e) => e.stopPropagation()}
-                >
+            <div className={styles.backdrop} onClick={close}>
+                <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                     <div className={styles.modal_header}>
-                        <h2 className={styles.modal_title}>
-                            {title}
-                        </h2>
-                        <button
-                            className={styles.modal_close}
-                            onClick={close}
-                        >
-                            ×
-                        </button>
+                        <h2 className={styles.modal_title}>{title}</h2>
+                        <button className={styles.modal_close} onClick={close}>×</button>
                     </div>
                     <hr className={styles.modal_hr} />
                     <div className={styles.modal_body}>
-                        {/* Description */}
                         <div className={styles.modal_field}>
                             <span className={styles.modal_label}>Description</span>
-                            <textarea
-                                className={styles.modal_textarea}
-                                value={localDesc}
-                                placeholder="Add a more detailed description..."
-                                onChange={(e) => setLocalDesc(e.target.value)}
-                            />
+                            <textarea className={styles.modal_textarea} value={localDesc} placeholder="Add a more detailed description..." onChange={(e) => setLocalDesc(e.target.value)} />
                         </div>
-
-                        {/* Priority */}
                         <div className={styles.modal_field}>
                             <span className={styles.modal_label}>Priority</span>
-                            <select
-                                className={styles.modal_select}
-                                value={localPriority}
-                                onChange={(e) => setLocalPriority(e.target.value)}
-                            >
+                            <select className={styles.modal_select} value={localPriority} onChange={(e) => setLocalPriority(e.target.value)}>
                                 <option value="">None</option>
                                 <option value="low">🟢 Low</option>
                                 <option value="medium">🟡 Medium</option>
@@ -136,70 +147,52 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
                                 <option value="urgent">🔴 Urgent</option>
                             </select>
                         </div>
-
-                        {/* Status */}
                         <div className={styles.modal_field}>
                             <span className={styles.modal_label}>Status</span>
                             <p className={styles.status_badge}>{task?.status?.replace("_", " ") ?? "—"}</p>
                         </div>
-
-                        {/* Due Date */}
                         <div className={styles.modal_field}>
                             <span className={styles.modal_label}>Due Date</span>
-                            <input
-                                type="date"
-                                className={styles.modal_input}
-                                value={localDueDate}
-                                onChange={(e) => setLocalDueDate(e.target.value)}
-                            />
+                            <input type="date" className={styles.modal_input} value={localDueDate} onChange={(e) => setLocalDueDate(e.target.value)} />
                         </div>
-
-                        {/* Created At */}
                         <div className={styles.modal_field}>
                             <span className={styles.modal_label}>Created</span>
                             <p>{formatDate(task?.createdAt) || "—"}</p>
                         </div>
-
                         <hr className={styles.modal_hr} />
-                        <button className={styles.modal_submit} onClick={handleSave}>
-                            Save Changes
-                        </button>
+                        <button className={styles.modal_submit} onClick={handleSave}>Save Changes</button>
                     </div>
                 </div>
             </div>,
             document.body
         );
 
-    // ----- Card (visible on the board) -----
+    if (!task?.id) {
+        return (
+            <div className={styles.card}>
+                <div className={styles.card_header}><h3>{title}</h3></div>
+            </div>
+        );
+    }
+
     return (
         <>
             <div
+                ref={setNodeRef}
+                style={style}
+                {...attributes}
+                {...listeners}
                 className={styles.card}
                 onClick={handleOpen}
-                draggable
-                onDragStart={(e) => {
-                    if (task?.id) {
-                        e.dataTransfer.setData("text/plain", task.id);
-                        // Optional: style changes on drag start
-                        setTimeout(() => (e.target as HTMLElement).style.opacity = '0.5', 0);
-                    }
-                }}
-                onDragEnd={(e) => {
-                    (e.target as HTMLElement).style.opacity = '1';
-                }}
             >
                 <div className={styles.card_header}>
                     <h3>{title}</h3>
-                    {/* "×" close button — removes the card from the board */}
                     <button
                         className={styles.card_close}
+                        onPointerDown={(e) => e.stopPropagation()}
                         onClick={(e) => {
-                            // stopPropagation prevents the card's onClick (handleOpen) from firing
                             e.stopPropagation();
-                            // Only remove if we have a valid task ID and the callback exists
-                            if (task?.id && onRemoveCard) {
-                                onRemoveCard(task.id);
-                            }
+                            if (task?.id && onRemoveCard) onRemoveCard(task.id);
                         }}
                     >
                         ×
@@ -211,7 +204,8 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
                     {task?.description
                         ? <p className={styles.card_description}>{task.description}</p>
                         : <p className={styles.card_description}>No description</p>
-                    }                    <div className={styles.card_meta}>
+                    }
+                    <div className={styles.card_meta}>
                         {task?.priority && <span className={styles.card_tag}>{priorityLabel(task.priority)}</span>}
                         {task?.dueDate && <span className={styles.card_tag}>📅 Due: {formatDate(task.dueDate)}</span>}
                     </div>

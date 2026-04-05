@@ -62,7 +62,7 @@ export async function fetchCards(boardId: string): Promise<Task[]> {
         .from('tasks')
         .select('*')
         .eq('board_id', boardId)
-        .order('created_at', { ascending: true })
+        .order('position', { ascending: true })
 
     if (error) {
         console.error('Error fetching cards:', error.message)
@@ -78,6 +78,7 @@ export async function fetchCards(boardId: string): Promise<Task[]> {
         priority: row.priority ?? undefined,
         createdAt: row.created_at,
         dueDate: row.due_date ?? undefined,
+        position: row.position ?? 0,
     }))
 }
 
@@ -141,6 +142,26 @@ export async function updateCardStatus(id: string, status: ColumnStatus): Promis
         return false
     }
 
+    return true
+}
+
+/**
+ * Update the exact positions and status of multiple tasks simultaneously
+ * following a drag-and-drop workflow.
+ */
+export async function updateTaskPositions(updates: { id: string, position: number, status: string }[]): Promise<boolean> {
+    const { error } = await supabase
+        .from('tasks')
+        .upsert(updates.map(u => ({
+            id: u.id,
+            position: u.position,
+            status: u.status
+        })), { onConflict: 'id' })
+
+    if (error) {
+        console.error('Error updating task positions:', error.message)
+        return false
+    }
     return true
 }
 

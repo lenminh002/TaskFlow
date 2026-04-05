@@ -27,6 +27,7 @@ export default function NavBar() {
     const [boards, setBoards] = useState<Board[]>([])
     const { isOpen, open, close } = useModal()
     const [boardName, setBoardName] = useState("")
+    const [searchQuery, setSearchQuery] = useState("")
     const inputRef = useRef<HTMLInputElement>(null)
 
     // Allow users to close the modal by pressing Escape
@@ -141,6 +142,13 @@ export default function NavBar() {
             document.body
         )
 
+    const filteredBoards = boards.filter((board) => {
+        const words = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+        if (words.length === 0) return true;
+        const bName = board.name.toLowerCase();
+        return words.every(word => bName.includes(word));
+    });
+
     return (
         <>
             <nav className={styles.nav}>
@@ -153,11 +161,17 @@ export default function NavBar() {
 
                 </div>
 
+
                 {/* Navigation items section: search bar, board links, and add button */}
                 <div className={styles.nav_items}>
-                    {/* Search bar for filtering (not yet functional) */}
+                    {/* Search bar for filtering boards */}
                     <div className={styles.search}>
-                        <input type="text" placeholder="Search tasks" />
+                        <input
+                            type="text"
+                            placeholder="Search boards"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                         <button>🔍</button>
                     </div>
 
@@ -168,7 +182,7 @@ export default function NavBar() {
                             <div className={styles.skeleton} />
                             <div className={styles.skeleton} />
                         </>
-                    ) : boards.map((board) => (
+                    ) : filteredBoards.map((board) => (
                         <div key={board.id} className={styles.nav_item_container}>
                             <Link
                                 href={`/tasks/${board.id}`}
@@ -176,8 +190,8 @@ export default function NavBar() {
                             >
                                 {board.name}
                             </Link>
-                            <button 
-                                className={styles.nav_item_delete} 
+                            <button
+                                className={styles.nav_item_delete}
                                 onClick={() => handleDeleteBoard(board.id, board.name)}
                                 title="Delete board"
                             >

@@ -36,6 +36,8 @@ export interface Task {
   updatedAt?: Date | string;
   /** Targeted deadline formatted as ISO date string or Date object */
   dueDate?: Date | string;
+  /** Positioning order index for drag and drop within columns */
+  position?: number;
 }
 
 /**

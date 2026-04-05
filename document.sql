@@ -20,7 +20,8 @@ CREATE TABLE tasks (
   status text DEFAULT 'todo',
   priority text,
   created_at timestamptz DEFAULT now(),
-  due_date timestamptz
+  due_date timestamptz,
+  position double precision DEFAULT 0
 );
 
 ALTER TABLE tasks DISABLE ROW LEVEL SECURITY;
