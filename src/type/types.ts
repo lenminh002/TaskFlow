@@ -1,27 +1,40 @@
-// Type definitions for the TaskFlow application
+/**
+ * @file types.ts
+ * @description Centralized type definitions for TaskFlow.
+ * @details Provides strict structural shapes (Tasks, Boards) for type safety between frontend and Supabase.
+ */
 
 /**
- * Column status types for the Kanban board
+ * Workflow stages for the Kanban board.
  */
 export type ColumnStatus = "todo" | "in_progress" | "in_review" | "done";
 
 /**
- * Priority levels for tasks
+ * Priority levels assignable to individual tasks natively supporting emojis in UI.
  */
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
 /**
- * Main Task interface
+ * Core Task entity representing a single card in a Kanban board.
  */
 export interface Task {
+  /** Unique UUID identifier */
   id: string;
+  /** UUID of the parent board this task belongs to */
   boardId: string;
+  /** Display title for the task (card header) */
   name: string;
+  /** Optional detailed markdown or text description */
   description?: string;
+  /** Workflow status mapping to a specific column */
   status?: ColumnStatus;
+  /** Importance priority enum */
   priority?: TaskPriority;
+  /** ISO date string or Date object representing creation time */
   createdAt?: Date | string;
+  /** ISO date string or Date object representing last update time */
   updatedAt?: Date | string;
+  /** Targeted deadline formatted as ISO date string or Date object */
   dueDate?: Date | string;
 }
 

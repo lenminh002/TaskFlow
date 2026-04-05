@@ -3,42 +3,43 @@
 import { createPortal } from "react-dom";
 import styles from "./NavBar.module.css";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from 'react'
 import { useModal } from "@/hooks/useModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { fetchBoards, addBoard } from "@/lib/actions";
 import type { Board } from "@/type/types";
 
-// NavBar renders the sidebar navigation.
-// It fetches boards from Supabase on mount and displays them as clickable links.
+/**
+ * @file NavBar.tsx
+ * @description Sidebar navigation component.
+ * @details Fetches and displays available boards. Syncs the active highlight with the URL pathname and provides modal logic for board creation/deletion.
+ */
+
+/**
+ * Renders the global sidebar navigation for board context switching.
+ */
 export default function NavBar() {
     const router = useRouter()
-    // Track whether boards are still being fetched
+    const pathname = usePathname()
+    // State for data fetching and UI components
     const [loading, setLoading] = useState(true)
-    // Track which nav item is currently selected (highlighted)
-    const [active, setActive] = useState<string | null>(null)
-    // Store the list of boards fetched from Supabase
     const [boards, setBoards] = useState<Board[]>([])
-    // Modal state for the "add board" popup
     const { isOpen, open, close } = useModal()
-    // Store the board name typed into the modal input
     const [boardName, setBoardName] = useState("")
-    // Ref to auto-focus the input when the modal opens
     const inputRef = useRef<HTMLInputElement>(null)
 
     // Allow users to close the modal by pressing Escape
     useEscapeKey(close, isOpen)
 
-    // Fetch boards from Supabase when the component first mounts.
+    // Fetch boards from Supabase on initial mount
     useEffect(() => {
         fetchBoards()
             .then(setBoards)
             .finally(() => setLoading(false))
     }, [])
 
-    // Listen for board rename events from EditableTitle
-    // and update the board name in our local list immediately.
+    // Listen for custom events to instantly sync renamed boards in the sidebar
     useEffect(() => {
         function handleRename(e: Event) {
             const { id, name } = (e as CustomEvent).detail
@@ -50,46 +51,61 @@ export default function NavBar() {
         return () => window.removeEventListener("board-renamed", handleRename)
     }, [])
 
-    // Auto-focus the input when the modal opens
+    // Focus the input field automatically when the modal opens
     useEffect(() => {
         if (isOpen) {
-            // Small delay to ensure the portal is mounted before focusing
             setTimeout(() => inputRef.current?.focus(), 50)
         }
     }, [isOpen])
 
-    // Create a new board in Supabase, add it to the sidebar list,
-    // and navigate to its page.
+    // Create a new board in the database and navigate to it upon success
     async function handleAddBoard() {
         const name = boardName.trim()
-        if (!name) return // Don't create a board with an empty name
+        if (!name) return
 
         const newBoard = {
             id: crypto.randomUUID(),
             name: name,
         }
 
-        // Close the modal and reset the input
         close()
         setBoardName("")
 
-        // Optimistically add to the list
+        // Update the UI immediately before waiting on the DB
         setBoards((prev) => [...prev, newBoard])
-        setActive(newBoard.id)
 
-        // Persist to Supabase
+        // Persist to Supabase and rollback if insertion fails
         const result = await addBoard(newBoard)
         if (!result) {
-            // Rollback if it failed
             setBoards((prev) => prev.filter((b) => b.id !== newBoard.id))
             return
         }
 
-        // Navigate to the new board's page
         router.push(`/tasks/${newBoard.id}`)
     }
 
-    // Modal rendered via portal into document.body
+    // Delete a board from the database and navigate to home if the deleted board is currently active
+    async function handleDeleteBoard(id: string, name: string) {
+        if (!window.confirm(`Are you sure you want to delete the board "${name}" and all its tasks?`)) {
+            return
+        }
+
+        // Update UI immediately
+        setBoards((prev) => prev.filter((b) => b.id !== id))
+
+        if (pathname === `/tasks/${id}`) {
+            router.push('/')
+        }
+
+        const { deleteBoard } = await import('@/lib/actions')
+        const result = await deleteBoard(id)
+        if (!result) {
+            alert('Failed to delete board.')
+            fetchBoards().then(setBoards)
+        }
+    }
+
+    // Render the modal into the document body to overlay the entire page
     const modal =
         isOpen &&
         createPortal(
@@ -153,14 +169,21 @@ export default function NavBar() {
                             <div className={styles.skeleton} />
                         </>
                     ) : boards.map((board) => (
-                        <Link
-                            href={`/tasks/${board.id}`}
-                            key={board.id}
-                            className={`${styles.nav_item} ${active === board.id ? styles.nav_item_active : ''}`}
-                            onClick={() => setActive(board.id)}
-                        >
-                            {board.name}
-                        </Link>
+                        <div key={board.id} className={styles.nav_item_container}>
+                            <Link
+                                href={`/tasks/${board.id}`}
+                                className={`${styles.nav_item} ${pathname === `/tasks/${board.id}` ? styles.nav_item_active : ''}`}
+                            >
+                                {board.name}
+                            </Link>
+                            <button 
+                                className={styles.nav_item_delete} 
+                                onClick={() => handleDeleteBoard(board.id, board.name)}
+                                title="Delete board"
+                            >
+                                ×
+                            </button>
+                        </div>
                     ))}
 
                     <br />

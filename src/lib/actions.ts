@@ -1,3 +1,9 @@
+/**
+ * @file actions.ts
+ * @description Supabase database CRUD operations.
+ * @details Server actions abstracting direct DB calls for the frontend components.
+ */
+
 import { supabase } from './supabase'
 import type { Task, ColumnStatus, Board } from '@/type/types'
 
@@ -141,7 +147,7 @@ export async function updateCardStatus(id: string, status: ColumnStatus): Promis
 /**
  * Update multiple fields of a card
  */
-export async function updateCardDetails(id: string, updates: Partial<{ description: string; priority: string; due_date: string | null }>): Promise<boolean> {
+export async function updateCardDetails(id: string, updates: Partial<{ description: string; priority: string; due_date: string | null; status: string }>): Promise<boolean> {
     const { error } = await supabase
         .from('tasks')
         .update(updates)
@@ -166,6 +172,23 @@ export async function updateBoardName(id: string, name: string): Promise<boolean
 
     if (error) {
         console.error('Error updating board name:', error.message)
+        return false
+    }
+
+    return true
+}
+
+/**
+ * Delete a board
+ */
+export async function deleteBoard(id: string): Promise<boolean> {
+    const { error } = await supabase
+        .from('boards')
+        .delete()
+        .eq('id', id)
+
+    if (error) {
+        console.error('Error deleting board:', error.message)
         return false
     }
 

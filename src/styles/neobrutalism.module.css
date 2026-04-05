@@ -41,7 +41,6 @@
   border: 2px solid #000000;
   box-shadow: 4px 4px 0px #000;
   background-color: #ffffff;
-  transition: all 0.1s ease;
 }
 
 .neo_button:hover {

@@ -1,27 +1,37 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { useState, useEffect } from "react";
 import { useModal } from "@/hooks/useModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import type { Task } from "@/type/types";
 import styles from "./Card.module.css";
 
-// Props for the Card component
+/**
+ * @file Card.tsx
+ * @description Draggable task card with an editable detail modal.
+ * @details Displays task summary on the board. Clicking opens a modal for editing details (description, priority, due date). Uses local state buffering to save explicitly.
+ */
+
+// Card prop definitions mapped to external APIs
 interface CardProps {
-    task?: Task;                            // The task data to display on this card
-    onClick?: () => void;                   // Optional callback when the card is clicked (before opening modal)
-    onUpdateCard?: (id: string, updates: Partial<Task>) => void; // Callback to update card properties
-    onRemoveCard?: (id: string) => void;    // Callback to remove this card from the board
+    task?: Task;
+    /** Click handler, typically for modal opening */
+    onClick?: () => void;
+    /** Parent callback to mutate card state upstream */
+    onUpdateCard?: (id: string, updates: Partial<Task>) => void;
+    /** Callback to remove card globally */
+    onRemoveCard?: (id: string) => void;
 }
 
-// Format a date value into a readable string
+/** Formats a date or string into "Mon DD, YYYY" format */
 function formatDate(value?: Date | string): string | null {
     if (!value) return null;
     const date = typeof value === "string" ? new Date(value) : value;
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-// Map priority values to display labels
+/** Translates raw priority strings into visual labels */
 function priorityLabel(priority?: string): string | null {
     if (!priority) return null;
     const labels: Record<string, string> = {
@@ -33,38 +43,56 @@ function priorityLabel(priority?: string): string | null {
     return labels[priority] ?? priority;
 }
 
-// Card represents a single task on the Kanban board.
-// Clicking the card body opens a detail modal; clicking "×" removes the card.
+/**
+ * Draggable card component encapsulating its own edit modal workflow.
+ */
 export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: CardProps) {
-    const { isOpen, open, close } = useModal();     // Custom hook to manage modal open/close state
-    const title = task?.name ?? "Task";             // Fallback to "Task" if no name is provided
+    const { isOpen, open, close } = useModal();
+    const title = task?.name ?? "Task";
 
-    // Allow users to close the modal by pressing the Escape key
+    // Local buffered state for editing
+    const [localDesc, setLocalDesc] = useState(task?.description || "");
+    const [localPriority, setLocalPriority] = useState(task?.priority || "");
+    const [localDueDate, setLocalDueDate] = useState(task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "");
+
+    // Sync local state when the modal opens to ensure any new external database values are displayed
+    useEffect(() => {
+        if (isOpen) {
+            setLocalDesc(task?.description || "");
+            setLocalPriority(task?.priority || "");
+            setLocalDueDate(task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "");
+        }
+    }, [isOpen, task]);
+
+    // Bind the Escape key to close the modal if it's currently open
     useEscapeKey(close, isOpen);
 
-    // When the card body is clicked, trigger any parent callback and open the modal
+    // Trigger the parent's generic onClick explicitly before opening the detail edit modal
     const handleOpen = () => {
-        onClick?.();    // Call the optional parent onClick if provided
-        open();         // Open the detail modal
+        onClick?.();
+        open();
     };
 
-    const handleUpdate = (updates: Partial<Task>) => {
+    // Bundle all locally edited fields and dispatch them to the parent for DB updating before closing the modal
+    const handleSave = () => {
         if (task?.id && onUpdateCard) {
-            onUpdateCard(task.id, updates);
+            onUpdateCard(task.id, {
+                description: localDesc,
+                priority: localPriority as any,
+                dueDate: localDueDate ? new Date(localDueDate) : undefined
+            });
         }
+        close();
     };
 
-    // ----- Modal (rendered via portal into document.body) -----
-    // createPortal renders this outside the normal DOM tree so it overlays the entire page.
+    // Provide a full-page modal using a React Portal so the overlay breaks out of the card's local CSS positioning
     const modal =
         isOpen &&
         createPortal(
-            // Backdrop: clicking it closes the modal
             <div
                 className={styles.backdrop}
                 onClick={close}
             >
-                {/* Modal content: stopPropagation prevents clicks inside from closing the modal */}
                 <div
                     className={styles.modal}
                     onClick={(e) => e.stopPropagation()}
@@ -87,9 +115,9 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
                             <span className={styles.modal_label}>Description</span>
                             <textarea
                                 className={styles.modal_textarea}
-                                defaultValue={task?.description || ""}
+                                value={localDesc}
                                 placeholder="Add a more detailed description..."
-                                onBlur={(e) => handleUpdate({ description: e.target.value })}
+                                onChange={(e) => setLocalDesc(e.target.value)}
                             />
                         </div>
 
@@ -98,8 +126,8 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
                             <span className={styles.modal_label}>Priority</span>
                             <select
                                 className={styles.modal_select}
-                                defaultValue={task?.priority || ""}
-                                onChange={(e) => handleUpdate({ priority: e.target.value as any })}
+                                value={localPriority}
+                                onChange={(e) => setLocalPriority(e.target.value)}
                             >
                                 <option value="">None</option>
                                 <option value="low">🟢 Low</option>
@@ -121,9 +149,8 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
                             <input
                                 type="date"
                                 className={styles.modal_input}
-                                // value requires YYYY-MM-DD
-                                defaultValue={task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ""}
-                                onChange={(e) => handleUpdate({ dueDate: e.target.value ? new Date(e.target.value) : undefined })}
+                                value={localDueDate}
+                                onChange={(e) => setLocalDueDate(e.target.value)}
                             />
                         </div>
 
@@ -132,6 +159,11 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
                             <span className={styles.modal_label}>Created</span>
                             <p>{formatDate(task?.createdAt) || "—"}</p>
                         </div>
+
+                        <hr className={styles.modal_hr} />
+                        <button className={styles.modal_submit} onClick={handleSave}>
+                            Save Changes
+                        </button>
                     </div>
                 </div>
             </div>,
@@ -144,6 +176,17 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
             <div
                 className={styles.card}
                 onClick={handleOpen}
+                draggable
+                onDragStart={(e) => {
+                    if (task?.id) {
+                        e.dataTransfer.setData("text/plain", task.id);
+                        // Optional: style changes on drag start
+                        setTimeout(() => (e.target as HTMLElement).style.opacity = '0.5', 0);
+                    }
+                }}
+                onDragEnd={(e) => {
+                    (e.target as HTMLElement).style.opacity = '1';
+                }}
             >
                 <div className={styles.card_header}>
                     <h3>{title}</h3>
@@ -165,10 +208,12 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
                 <br />
                 <hr />
                 <div className={styles.card_content}>
-                    {task?.description && <p className={styles.card_description}>{task.description}</p>}
-                    <div className={styles.card_meta}>
+                    {task?.description
+                        ? <p className={styles.card_description}>{task.description}</p>
+                        : <p className={styles.card_description}>No description</p>
+                    }                    <div className={styles.card_meta}>
                         {task?.priority && <span className={styles.card_tag}>{priorityLabel(task.priority)}</span>}
-                        {task?.dueDate && <span className={styles.card_tag}>📅 {formatDate(task.dueDate)}</span>}
+                        {task?.dueDate && <span className={styles.card_tag}>📅 Due: {formatDate(task.dueDate)}</span>}
                     </div>
                 </div>
             </div>

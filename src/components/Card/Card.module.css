@@ -27,11 +27,11 @@
 
 .card_close {
     flex-shrink: 0;
-    width: 2rem;
-    height: 2rem;
+    width: 1.5rem;
+    height: 1.5rem;
     padding: 0;
     line-height: 1;
-    font-size: 1.5rem;
+    font-size: 1rem;
     cursor: pointer;
     background: #ffffff;
     border: 2px solid #000000;
@@ -200,4 +200,26 @@
 .status_badge {
     text-transform: capitalize;
     font-weight: 600;
+}
+
+.modal_submit {
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: #000000;
+    color: #ffffff;
+    border: 2px solid #000000;
+    box-shadow: 4px 4px 0px #333;
+    transition: all 0.1s ease;
+}
+
+.modal_submit:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #333;
+}
+
+.modal_submit:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #333;
 }

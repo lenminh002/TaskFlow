@@ -8,34 +8,47 @@ import styles from "./Column.module.css";
 import Card from "@/components/Card/Card";
 import type { Task, ColumnStatus } from "@/type/types";
 
-// Props for the Column component (defined here since only Column uses it)
+/**
+ * @file Column.tsx
+ * @description Renders a single vertical lane in the Kanban board.
+ * @details Manages its own add-card modal and acts as an HTML5 drop zone, propagating actions to BoardClient.
+ */
+
+// Column-specific props
 interface ColumnProps {
-    title: string;                              // Display name shown at the top of the column (e.g. "To Do")
-    status: ColumnStatus;                       // Status key used as a data attribute for styling/filtering
-    tasks?: Task[];                             // Array of tasks to render as cards inside this column
-    onAddCard?: (name: string) => void;         // Callback triggered with the card name from the modal
-    onUpdateCard?: (id: string, updates: Partial<Task>) => void; // Callback to handle card property updates
-    onRemoveCard?: (id: string) => void;        // Callback triggered when a card's "×" button is clicked
+    /** Display name at the top (e.g. "To Do") */
+    title: string;                              
+    /** Status key used for logical filtering (e.g. "todo") */
+    status: ColumnStatus;                       
+    /** Tasks to render inside this column */
+    tasks?: Task[];                             
+    /** Callback for modal form submission */
+    onAddCard?: (name: string) => void;         
+    /** Propagates drag-and-drop or detail changes */
+    onUpdateCard?: (id: string, updates: Partial<Task>) => void; 
+    /** Propagates card removal */
+    onRemoveCard?: (id: string) => void;        
 }
 
-// Column represents a single vertical lane on the Kanban board.
-// It receives its tasks and callbacks from BoardClient (the parent).
+/**
+ * Vertical Kanban lane rendering cards and a "+" button modal for new tasks.
+ */
 export default function Column({ title, status, tasks = [], onAddCard, onUpdateCard, onRemoveCard }: ColumnProps) {
     const { isOpen, open, close } = useModal();
     const [cardName, setCardName] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Allow users to close the modal by pressing Escape
+    // Bind the Escape key to close the modal if it is actively open
     useEscapeKey(close, isOpen);
 
-    // Auto-focus the input when the modal opens
+    // Auto-focus the input field shortly after the modal portal mounts to the DOM
     useEffect(() => {
         if (isOpen) {
             setTimeout(() => inputRef.current?.focus(), 50);
         }
     }, [isOpen]);
 
-    // Submit the new card name to the parent and close the modal
+    // Submit the normalized card name upstream to the BoardClient for database insertion
     function handleSubmit() {
         const trimmed = cardName.trim();
         if (!trimmed) return;
@@ -44,7 +57,7 @@ export default function Column({ title, status, tasks = [], onAddCard, onUpdateC
         close();
     }
 
-    // Modal rendered via portal into document.body
+    // Render the new-card modal globally using a portal to overlay the entire view
     const modal =
         isOpen &&
         createPortal(
@@ -82,7 +95,25 @@ export default function Column({ title, status, tasks = [], onAddCard, onUpdateC
 
     return (
         <>
-            <div className={styles.column} data-status={status}>
+            <div 
+                className={styles.column} 
+                data-status={status}
+                onDragOver={(e) => {
+                    e.preventDefault();
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '#f0f0f0';
+                }}
+                onDragLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '';
+                }}
+                onDrop={(e) => {
+                    e.preventDefault();
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '';
+                    const taskId = e.dataTransfer.getData("text/plain");
+                    if (taskId && onUpdateCard) {
+                        onUpdateCard(taskId, { status: status });
+                    }
+                }}
+            >
                 <h1>{title}</h1>
 
                 {/* Render a Card for each task in this column */}

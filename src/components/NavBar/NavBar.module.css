@@ -76,7 +76,13 @@
     gap: 0.5rem;
 }
 
+.nav_item_container {
+    display: flex;
+    gap: 0.5rem;
+}
+
 .nav_item {
+    flex: 1;
     padding: 0.5rem 0.75rem;
     cursor: pointer;
     font-size: 0.9rem;
@@ -96,6 +102,34 @@
     box-shadow: 2px 2px 0px #000;
     background-color: #e8e8e8;
     font-weight: 600;
+}
+
+.nav_item_delete {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2.2rem;
+    padding: 0;
+    line-height: 1;
+    font-size: 1.25rem;
+    cursor: pointer;
+    background: #ffffff;
+    border: 2px solid #000000;
+    box-shadow: 4px 4px 0px #000;
+    transition: all 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav_item_delete:hover {
+    background: #ffcccc;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.nav_item_delete:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #000;
 }
 
 .nav_item_active:hover {
