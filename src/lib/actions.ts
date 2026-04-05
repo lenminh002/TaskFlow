@@ -150,16 +150,20 @@ export async function updateCardStatus(id: string, status: ColumnStatus): Promis
  * following a drag-and-drop workflow.
  */
 export async function updateTaskPositions(updates: { id: string, position: number, status: string }[]): Promise<boolean> {
-    const { error } = await supabase
-        .from('tasks')
-        .upsert(updates.map(u => ({
-            id: u.id,
-            position: u.position,
-            status: u.status
-        })), { onConflict: 'id' })
+    // Use individual .update() calls instead of .upsert() to avoid NOT NULL constraint violations.
+    // upsert tries to insert a full row if the id doesn't match, which fails when required columns like `name` are missing.
+    const results = await Promise.all(
+        updates.map(u =>
+            supabase
+                .from('tasks')
+                .update({ position: u.position, status: u.status })
+                .eq('id', u.id)
+        )
+    )
 
-    if (error) {
-        console.error('Error updating task positions:', error.message)
+    const failed = results.find(r => r.error)
+    if (failed?.error) {
+        console.error('Error updating task positions:', failed.error.message)
         return false
     }
     return true
