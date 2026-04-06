@@ -69,8 +69,10 @@ CREATE TABLE tasks (
 
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 -- Complete board hierarchy mapping. If you have board access, you have task mutation rights implicitly.
+DROP POLICY IF EXISTS "Task access" ON tasks;
 CREATE POLICY "Task access" ON tasks FOR ALL USING (
-  EXISTS (SELECT 1 FROM boards WHERE id = tasks.board_id AND (user_id = auth.uid() OR EXISTS (SELECT 1 FROM board_members WHERE board_id = boards.id AND user_id = auth.uid())))
+  EXISTS (SELECT 1 FROM boards b WHERE b.id = tasks.board_id AND b.user_id = auth.uid()) OR
+  EXISTS (SELECT 1 FROM board_members bm WHERE bm.board_id = tasks.board_id AND bm.user_id = auth.uid())
 );
 
 -- ========================================

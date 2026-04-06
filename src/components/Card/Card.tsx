@@ -95,12 +95,14 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
      */
     const handleSave = () => {
         if (task?.id && onUpdateCard) {
+            const selectedMember = teamMembers.find(m => m.id === localAssigneeId);
             onUpdateCard(task.id, {
                 name: localName.trim() || "Untitled Task",
                 description: localDesc,
                 priority: (localPriority || "") as any,
                 status: localStatus,
                 assigneeId: localAssigneeId || "",
+                assigneeName: selectedMember ? selectedMember.username : undefined,
                 dueDate: localDueDate ? new Date(localDueDate) : "" as any
             });
         }

@@ -2,8 +2,11 @@
 
 import React, { useState } from "react";
 import Modal from "./Modal/Modal";
+import modalStyles from "@/components/Modal/Modal.module.css";
 import { addBoardMember } from "@/lib/actions";
 import { useRouter } from "next/navigation";
+import { useModal } from "@/hooks/useModal";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 /** 
  * @file AddMemberButton.tsx 
@@ -16,9 +19,11 @@ import { useRouter } from "next/navigation";
  */
 export default function AddMemberButton({ boardId }: { boardId: string }) {
     const router = useRouter();
-    const [isOpen, setIsOpen] = useState(false);
+    const { isOpen, open, close } = useModal();
     const [memberId, setMemberId] = useState("");
     const [loading, setLoading] = useState(false);
+
+    useEscapeKey(close, isOpen);
 
     // Execute Server Action attaching the unverified UUID natively into the `board_members` matrix table.
     const handleSubmit = async (e: React.FormEvent) => {
@@ -27,7 +32,7 @@ export default function AddMemberButton({ boardId }: { boardId: string }) {
         setLoading(true);
         try {
             await addBoardMember(boardId, memberId.trim());
-            setIsOpen(false);
+            close();
             setMemberId("");
             // Refresh Server Components natively to download the freshly hydrated user structures over RLS
             router.refresh();
@@ -42,7 +47,7 @@ export default function AddMemberButton({ boardId }: { boardId: string }) {
     return (
         <>
             <button
-                onClick={() => setIsOpen(true)}
+                onClick={open}
                 style={{
                     padding: '0.5rem 1rem',
                     backgroundColor: '#000',
@@ -55,32 +60,22 @@ export default function AddMemberButton({ boardId }: { boardId: string }) {
             >
                 + Add Member
             </button>
-            <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Add Team Member">
-                <p style={{ marginTop: '0.5rem', marginBottom: '1.5rem', color: '#555' }}>
-                    Paste a User ID to grant them permission to edit this board.
-                </p>
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <Modal isOpen={isOpen} onClose={close} title="Add Team Member">
+                <form onSubmit={handleSubmit} className={modalStyles.modal_body}>
+                    <label className={modalStyles.modal_label}>User UUID</label>
                     <input
                         type="text"
                         value={memberId}
                         onChange={(e) => setMemberId(e.target.value)}
-                        placeholder="User UUID"
-                        style={{ padding: '0.5rem', border: '2px solid #000', fontSize: '1rem' }}
+                        placeholder="Paste a User ID here..."
+                        className={modalStyles.modal_input}
                         autoFocus
                         required
                     />
                     <button
                         type="submit"
                         disabled={loading || !memberId.trim()}
-                        style={{
-                            padding: '0.75rem',
-                            backgroundColor: '#000',
-                            color: '#fff',
-                            border: 'none',
-                            cursor: loading || !memberId.trim() ? 'not-allowed' : 'pointer',
-                            fontWeight: 'bold',
-                            fontSize: '1rem'
-                        }}
+                        className={modalStyles.modal_submit}
                     >
                         {loading ? "Adding..." : "Add to Board"}
                     </button>

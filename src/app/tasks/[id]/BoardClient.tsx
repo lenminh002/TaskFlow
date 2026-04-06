@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Column from "@/components/Column/Column";
-import { addCard, removeCard, updateTaskPositions, updateCardDetails, fetchCards } from "@/lib/actions";
+import { addCard, removeCard, updateTaskPositions, updateCardDetails } from "@/lib/actions";
 import type { Task, ColumnStatus } from "@/type/types";
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay, closestCorners, DragStartEvent, DragEndEvent, DragOverEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -23,11 +23,13 @@ import { BOARD_COLUMNS } from "@/lib/constants";
  * @param className - Optional CSS class for top-level styling injection.
  * @param children - Any optional React nodes to append inside the board view.
  */
+const sortTasksByPosition = (taskList: Task[]) => [...taskList].sort((a, b) => (a.position || 0) - (b.position || 0));
+
 export default function BoardClient({ boardId, initialTasks, teamMembers = [], className, children }: { boardId: string; initialTasks: Task[]; teamMembers?: { id: string, username: string }[]; className?: string; children?: React.ReactNode }) {
     // During initial component mount, we forcefully re-sort the prop tasks fetched from the server.
     // This ensures that even if Supabase returned rows asynchronously out-of-order, 
     // the local sequence flawlessly honors the floating-point `position` column.
-    const sortedInitial = [...initialTasks].sort((a, b) => (a.position || 0) - (b.position || 0));
+    const sortedInitial = sortTasksByPosition(initialTasks);
 
     // `tasks` holds the entire application's source of truth for all columns simultaneously.
     const [tasks, setTasks] = useState<Task[]>(sortedInitial);
@@ -64,7 +66,7 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
     // Does NOT fire when a drag ends — that was causing the reorder to snap back.
     useEffect(() => {
         if (!isDraggingRef.current) {
-            setTasks([...initialTasks].sort((a, b) => (a.position || 0) - (b.position || 0)));
+            setTasks(sortTasksByPosition(initialTasks));
         }
     }, [initialTasks]);
 
@@ -102,10 +104,34 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
                     // Fix 2: Debounce — collapse rapid events into a single fetch
                     if (debounceRef.current) clearTimeout(debounceRef.current);
                     debounceRef.current = setTimeout(async () => {
-                        const freshCards = await fetchCards(boardId);
-                        if (!isDraggingRef.current) {
-                            const sorted = freshCards.sort((a, b) => (a.position || 0) - (b.position || 0));
-                            setTasks(sorted);
+                        // Use the client-side Supabase directly instead of the server action
+                        // to avoid Next.js caching issues when called from setTimeout.
+                        const { data, error } = await supabase
+                            .from('tasks')
+                            .select('*, users(username)')
+                            .eq('board_id', boardId)
+                            .order('position', { ascending: true });
+
+                        if (error) {
+                            console.error("Realtime refetch failed:", error.message);
+                            return;
+                        }
+
+                        if (!isDraggingRef.current && data) {
+                            const mapped: Task[] = data.map((row: any) => ({
+                                id: row.id,
+                                boardId: row.board_id,
+                                name: row.name,
+                                description: row.description ?? undefined,
+                                status: row.status ?? "todo",
+                                priority: row.priority ?? undefined,
+                                createdAt: row.created_at,
+                                dueDate: row.due_date ?? undefined,
+                                position: row.position ?? 0,
+                                assigneeId: row.assignee_id ?? undefined,
+                                assigneeName: row.users?.username ?? undefined,
+                            }));
+                            setTasks(sortTasksByPosition(mapped));
                         }
                     }, 500);
                 }

@@ -2,7 +2,10 @@
 
 import React, { useState } from "react";
 import Modal from "./Modal/Modal";
+import modalStyles from "@/components/Modal/Modal.module.css";
 import { createUserProfile } from "@/lib/actions";
+import { useModal } from "@/hooks/useModal";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 /**
  * @file WelcomeModal.tsx
@@ -10,8 +13,11 @@ import { createUserProfile } from "@/lib/actions";
  */
 
 export default function WelcomeModal({ userId, onComplete }: { userId: string, onComplete: () => void }) {
+    const { isOpen, close } = useModal(true);
     const [username, setUsername] = useState("");
     const [loading, setLoading] = useState(false);
+
+    useEscapeKey(close, isOpen);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -20,6 +26,7 @@ export default function WelcomeModal({ userId, onComplete }: { userId: string, o
         try {
             // Push profile payload to public users table unlocking full interactive privileges platform-wide
             await createUserProfile(userId, username);
+            close();
             onComplete();
         } catch (err) {
             console.error(err);
@@ -28,33 +35,22 @@ export default function WelcomeModal({ userId, onComplete }: { userId: string, o
     };
 
     return (
-        <Modal isOpen={true} onClose={() => {}} title="Onboarding">
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Welcome to TaskFlow!</h2>
-            <p style={{ marginTop: '0.5rem', marginBottom: '1.5rem', color: '#555' }}>
-                Please enter a username to collaborate with your team.
-            </p>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <Modal isOpen={isOpen} onClose={close} title="Welcome to TaskFlow!">
+            <form onSubmit={handleSubmit} className={modalStyles.modal_body}>
+                <label className={modalStyles.modal_label}>Username</label>
                 <input 
                     type="text" 
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="E.g. Alex"
-                    style={{ padding: '0.5rem', border: '2px solid #000', fontSize: '1rem' }}
+                    className={modalStyles.modal_input}
                     autoFocus
                     required
                 />
                 <button 
                     type="submit" 
                     disabled={loading || !username.trim()}
-                    style={{
-                        padding: '0.75rem',
-                        backgroundColor: '#000',
-                        color: '#fff',
-                        border: 'none',
-                        cursor: loading || !username.trim() ? 'not-allowed' : 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '1rem'
-                    }}
+                    className={modalStyles.modal_submit}
                 >
                     {loading ? "Joining..." : "Join Workflow"}
                 </button>

@@ -41,15 +41,18 @@ export default function NavBar() {
     useEscapeKey(close, isOpen)
 
     // Fetch boards from Supabase on initial mount
-    useEffect(() => {
-        fetchBoards()
+    const reloadBoards = () => {
+        return fetchBoards()
             .then((res) => {
                 setBoards(res.boards);
                 setCurrentUserId(res.currentUserId);
             })
-            .catch((e) => console.error("Could not load boards:", e))
-            .finally(() => setLoading(false))
-    }, [])
+            .catch((e) => console.error("Could not load boards:", e));
+    };
+
+    useEffect(() => {
+        reloadBoards().finally(() => setLoading(false));
+    }, []);
 
     // Listen for custom events to instantly sync renamed boards in the sidebar
     useEffect(() => {
@@ -96,46 +99,33 @@ export default function NavBar() {
         }
     }
 
-    // Delete a board from the database and navigate to home if the deleted board is currently active
-    async function handleDeleteBoard(id: string, name: string) {
-        if (typeof window === "undefined" || !window.confirm(`Are you sure you want to delete the board "${name}" and all its tasks?`)) {
-            return;
-        }
+    // Generalize board removal (Owner = delete, Member = leave)
+    async function handleRemoveBoard(id: string, name: string, isOwner: boolean) {
+        const actionName = isOwner ? 'delete' : 'leave';
+        const confirmMsg = isOwner 
+            ? `Are you sure you want to delete the board "${name}" and all its tasks?`
+            : `Are you sure you want to leave the board "${name}"? You will lose access.`;
 
-        // Update UI immediately
-        setBoards((prev) => prev.filter((b) => b.id !== id))
-
-        if (pathname === `/tasks/${id}`) {
-            router.push('/')
-        }
-
-        try {
-            await deleteBoard(id);
-        } catch (e) {
-            console.error("Failed to delete board:", e);
-            alert('Failed to delete board.');
-            fetchBoards().then(res => { setBoards(res.boards); setCurrentUserId(res.currentUserId); }).catch(console.error);
-        }
-    }
-
-    // Safely detach from a board without destroying the owner's master entity
-    async function handleLeaveBoard(id: string, name: string) {
-        if (typeof window === "undefined" || !window.confirm(`Are you sure you want to leave the board "${name}"? You will lose access.`)) {
+        if (typeof window === "undefined" || !window.confirm(confirmMsg)) {
             return;
         }
 
         // Update UI optimistically
-        setBoards((prev) => prev.filter((b) => b.id !== id))
+        setBoards((prev) => prev.filter((b) => b.id !== id));
         if (pathname === `/tasks/${id}`) {
-            router.push('/')
+            router.push('/');
         }
 
         try {
-            await leaveBoard(id);
+            if (isOwner) {
+                await deleteBoard(id);
+            } else {
+                await leaveBoard(id);
+            }
         } catch (e) {
-            console.error("Failed to leave board:", e);
-            alert('Failed to leave board.');
-            fetchBoards().then(res => { setBoards(res.boards); setCurrentUserId(res.currentUserId); }).catch(console.error);
+            console.error(`Failed to ${actionName} board:`, e);
+            alert(`Failed to ${actionName} board.`);
+            reloadBoards();
         }
     }
 
@@ -223,7 +213,7 @@ export default function NavBar() {
                                 <button
                                     className={styles.nav_item_delete}
                                     style={{ color: isOwner ? '' : '#d9534f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                    onClick={() => isOwner ? handleDeleteBoard(board.id, board.name) : handleLeaveBoard(board.id, board.name)}
+                                    onClick={() => handleRemoveBoard(board.id, board.name, isOwner)}
                                     title={isOwner ? "Delete board" : "Leave board"}
                                 >
                                     {isOwner ? '×' : (

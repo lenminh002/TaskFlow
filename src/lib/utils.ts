@@ -3,14 +3,7 @@
  * @description General reusable utility functions.
  */
 
-/**
- * Beautifies standard database string labels.
- * Example: "in_progress" -> "in progress"
- */
-export function formatStatusLabel(statusString: string | undefined | null): string {
-    if (!statusString) return "—";
-    return statusString.replace(/_/g, " ");
-}
+
 
 /**
  * Parses a potentially invalid date into a safe YYYY-MM-DD format for HTML date inputs.

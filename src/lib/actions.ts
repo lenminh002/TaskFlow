@@ -21,6 +21,11 @@ function validateStatus(status: unknown): ColumnStatus {
     return "todo";
 }
 
+function handleError(operation: string, error: any): never {
+    console.error(`Error ${operation}:`, error.message);
+    throw new Error(`Failed to ${operation}: ${error.message}`);
+}
+
 function validatePriority(priority: unknown): TaskPriority | undefined {
     if (!priority) return undefined;
     if (typeof priority === 'string' && VALID_PRIORITIES.includes(priority as TaskPriority)) {
@@ -60,10 +65,7 @@ export async function fetchBoards(): Promise<{ boards: Board[], currentUserId: s
         .select('*')
         .order('created_at', { ascending: true })
 
-    if (error) {
-        console.error('Error fetching boards:', error.message)
-        throw new Error(`Failed to fetch boards: ${error.message}`)
-    }
+    if (error) handleError('fetch boards', error);
 
     return {
         boards: (data ?? []).map((row) => ({
@@ -89,10 +91,7 @@ export async function addBoard(board: { id: string; name: string }): Promise<Boa
         .select()
         .single()
 
-    if (error) {
-        console.error('Error adding board:', error.message)
-        throw new Error(`Failed to add board: ${error.message}`)
-    }
+    if (error) handleError('add board', error);
 
     revalidatePath('/', 'layout');
 
@@ -118,10 +117,7 @@ export async function fetchCards(boardId: string): Promise<Task[]> {
         .eq('board_id', boardId)
         .order('position', { ascending: true })
 
-    if (error) {
-        console.error('Error fetching cards:', error.message)
-        throw new Error(`Failed to fetch cards: ${error.message}`)
-    }
+    if (error) handleError('fetch cards', error);
 
     return (data ?? []).map((row: TaskRow) => ({
         id: row.id,
@@ -156,10 +152,7 @@ export async function addCard(card: { id: string; name: string; status: ColumnSt
         .select()
         .single()
 
-    if (error) {
-        console.error('Error adding card:', error.message)
-        throw new Error(`Failed to add card: ${error.message}`)
-    }
+    if (error) handleError('add card', error);
 
     return {
         id: data.id,
@@ -180,10 +173,7 @@ export async function removeCard(id: string): Promise<boolean> {
         .delete()
         .eq('id', id)
 
-    if (error) {
-        console.error('Error removing card:', error.message)
-        throw new Error(`Failed to remove card: ${error.message}`)
-    }
+    if (error) handleError('remove card', error);
 
     return true
 }
@@ -198,10 +188,7 @@ export async function updateCardStatus(id: string, status: ColumnStatus): Promis
         .update({ status })
         .eq('id', id)
 
-    if (error) {
-        console.error('Error updating card status:', error.message)
-        throw new Error(`Failed to update card status: ${error.message}`)
-    }
+    if (error) handleError('update card status', error);
 
     return true
 }
@@ -222,10 +209,7 @@ export async function updateTaskPositions(updates: { id: string, position: numbe
         updates: updates
     })
 
-    if (error) {
-        console.error('Error updating task positions:', error.message)
-        throw new Error(`Failed to update task positions: ${error.message}`)
-    }
+    if (error) handleError('update task positions', error);
     return true
 }
 
@@ -241,10 +225,7 @@ export async function updateCardDetails(id: string, updates: Partial<{ name: str
         .update(updates)
         .eq('id', id)
 
-    if (error) {
-        console.error('Error updating card details:', error.message)
-        throw new Error(`Failed to update card details: ${error.message}`)
-    }
+    if (error) handleError('update card details', error);
 
     return true
 }
@@ -259,10 +240,7 @@ export async function updateBoardName(id: string, name: string): Promise<boolean
         .update({ name })
         .eq('id', id)
 
-    if (error) {
-        console.error('Error updating board name:', error.message)
-        throw new Error(`Failed to update board name: ${error.message}`)
-    }
+    if (error) handleError('update board name', error);
 
     return true
 }
@@ -277,10 +255,7 @@ export async function deleteBoard(id: string): Promise<boolean> {
         .delete()
         .eq('id', id)
 
-    if (error) {
-        console.error('Error deleting board:', error.message)
-        throw new Error(`Failed to delete board: ${error.message}`)
-    }
+    if (error) handleError('delete board', error);
 
     revalidatePath('/', 'layout');
 
@@ -301,10 +276,7 @@ export async function leaveBoard(id: string): Promise<boolean> {
         .eq('board_id', id)
         .eq('user_id', session.user.id)
 
-    if (error) {
-        console.error('Error leaving board:', error.message)
-        throw new Error(`Failed to leave board: ${error.message}`)
-    }
+    if (error) handleError('leave board', error);
     if (count === 0) {
         // If count is 0, the user wasn't actually a member (security guard)
         console.error('Silent fail: No matching board_members row found to delete for user', session.user.id);
@@ -319,10 +291,7 @@ export async function leaveBoard(id: string): Promise<boolean> {
         .eq('board_id', id)
         .eq('assignee_id', session.user.id);
         
-    if (tasksError) {
-        console.error("Failed to cleanly unassign tasks during board exit:", tasksError);
-        throw new Error(tasksError.message);
-    }
+    if (tasksError) handleError('cleanly unassign tasks during board exit', tasksError);
 
     revalidatePath('/', 'layout');
 
@@ -338,10 +307,7 @@ export async function createUserProfile(id: string, username: string): Promise<b
         .from('users')
         .insert({ id, username })
 
-    if (error) {
-        console.error('Error creating user profile:', error.message)
-        throw new Error(`Failed to create profile: ${error.message}`)
-    }
+    if (error) handleError('create user profile', error);
     return true
 }
 
@@ -365,10 +331,7 @@ export async function addBoardMember(boardId: string, memberId: string): Promise
         .from('board_members')
         .insert({ board_id: boardId, user_id: memberId })
 
-    if (error) {
-        console.error('Error adding board member:', error.message)
-        throw new Error(`Failed to add board member: ${error.message}`)
-    }
+    if (error) handleError('add board member', error);
     
     revalidatePath('/', 'layout');
     
