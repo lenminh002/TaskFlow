@@ -8,7 +8,7 @@
 
 import { createClient } from './supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Task, ColumnStatus, Board, TaskPriority } from '@/type/types'
+import type { Task, ColumnStatus, Board, TaskPriority, Comment } from '@/type/types'
 import { VALID_STATUSES, VALID_PRIORITIES } from '@/lib/constants'
 
 // ─── Shared Utilities ───────────────────────────────────────────────
@@ -367,4 +367,92 @@ export async function fetchBoardMembersFull(boardId: string): Promise<{id: strin
         .in('id', Array.from(userIds));
 
     return profiles || [];
+}
+
+// ─── Comments & Discussions ──────────────────────────────────────────
+
+/**
+ * Fetch all comments attached to a specific task, sorted chronologically.
+ */
+export async function fetchComments(taskId: string): Promise<Comment[]> {
+    const supabase = await createClient();
+    
+    // Join with users table to get the raw username of the commenter
+    const { data, error } = await supabase
+        .from('comments')
+        .select(`
+            id,
+            task_id,
+            user_id,
+            content,
+            created_at,
+            users ( username )
+        `)
+        .eq('task_id', taskId)
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        console.error('Error fetch comments:', error.message);
+        return []; // Return empty gracefully rather than hard-crashing the modal
+    }
+
+    return (data || []).map((row: any) => ({
+        id: row.id,
+        taskId: row.task_id,
+        userId: row.user_id,
+        username: row.users?.username || 'Unknown User',
+        content: row.content,
+        createdAt: row.created_at,
+    }));
+}
+
+/**
+ * Insert a new comment into a task using the active user session.
+ */
+export async function addComment(taskId: string, content: string): Promise<Comment | null> {
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.user?.id) throw new Error("No active session");
+
+    const { data, error } = await supabase
+        .from('comments')
+        .insert({
+            task_id: taskId,
+            content: content
+        })
+        .select(`
+            id,
+            task_id,
+            user_id,
+            content,
+            created_at,
+            users ( username )
+        `)
+        .single();
+
+    if (error) handleError('add comment', error);
+
+    return {
+        id: data.id,
+        taskId: data.task_id,
+        userId: data.user_id,
+        username: (Array.isArray(data.users) ? data.users[0]?.username : (data.users as any)?.username) || 'Unknown User',
+        content: data.content,
+        createdAt: data.created_at,
+    };
+}
+
+/**
+ * Delete an existing comment (restricted structurally by RLS to the author).
+ */
+export async function deleteComment(commentId: string): Promise<boolean> {
+    const supabase = await createClient();
+    const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+
+    if (error) handleError('delete comment', error);
+    return true;
 }

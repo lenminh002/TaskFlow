@@ -73,3 +73,15 @@ export interface Board {
   userId?: string;
 }
 
+/**
+ * Comment interface — represents a timestamped comment left on a specific task
+ */
+export interface Comment {
+  id: string;
+  taskId: string;
+  userId: string;
+  username: string;   
+  content: string;
+  createdAt: string;
+}
+

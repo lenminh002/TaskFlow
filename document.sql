@@ -99,3 +99,37 @@ BEGIN
   WHERE tasks.id = (item->>'id')::uuid;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ========================================
+-- Comments table (discussions on tasks)
+-- ========================================
+CREATE TABLE comments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  task_id uuid NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES users(id) ON DELETE CASCADE,
+  content text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+
+-- Read: anyone with board access can see comments
+CREATE POLICY "Comment read" ON comments FOR SELECT USING (
+  EXISTS (SELECT 1 FROM tasks t
+    JOIN boards b ON b.id = t.board_id
+    WHERE t.id = comments.task_id
+    AND (b.user_id = auth.uid()
+      OR EXISTS (SELECT 1 FROM board_members bm WHERE bm.board_id = b.id AND bm.user_id = auth.uid())))
+);
+
+-- Insert: board participants can add comments
+CREATE POLICY "Comment insert" ON comments FOR INSERT WITH CHECK (
+  auth.uid() = user_id AND EXISTS (SELECT 1 FROM tasks t
+    JOIN boards b ON b.id = t.board_id
+    WHERE t.id = comments.task_id
+    AND (b.user_id = auth.uid()
+      OR EXISTS (SELECT 1 FROM board_members bm WHERE bm.board_id = b.id AND bm.user_id = auth.uid())))
+);
+
+-- Delete: only the comment author can delete their own comment
+CREATE POLICY "Comment delete" ON comments FOR DELETE USING (auth.uid() = user_id);

@@ -11,6 +11,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS, getPriorityLabel } from "@/lib/constants";
 import { parseSafeDate, formatDate } from "@/lib/utils";
+import CommentSection from "@/components/CommentSection/CommentSection";
 
 /**
  * @file Card.tsx
@@ -111,27 +112,28 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
 
     const modal = (
         <Modal isOpen={isOpen} onClose={close} title={title}>
-            {/* Body: Edit form mapped directly to the active task's local state hook. */}
-            <div className={modalStyles.modal_body}>
-                <div className={modalStyles.modal_field}>
-                    <span className={modalStyles.modal_label}>Title</span>
-                    <input type="text" className={modalStyles.modal_input} value={localName} onChange={(e) => setLocalName(e.target.value)} />
-                </div>
-                <div className={modalStyles.modal_field}>
-                    <span className={modalStyles.modal_label}>Description</span>
-                    <textarea className={modalStyles.modal_textarea} value={localDesc} placeholder="Add a more detailed description..." onChange={(e) => setLocalDesc(e.target.value)} />
-                </div>
-                <div className={modalStyles.modal_field}>
-                    <span className={modalStyles.modal_label}>Priority</span>
-                    <select className={modalStyles.modal_select} value={localPriority} onChange={(e) => setLocalPriority(e.target.value)}>
-                        {PRIORITY_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className={modalStyles.modal_field}>
-                    <span className={modalStyles.modal_label}>Status</span>
-                    <select className={modalStyles.modal_select} value={localStatus} onChange={(e) => setLocalStatus(e.target.value as ColumnStatus)}>
+            <div className={modalStyles.modal_split_layout}>
+                {/* Left Column: Edit form mapped directly to the active task's local state hook. */}
+                <div className={modalStyles.modal_body}>
+                    <div className={modalStyles.modal_field}>
+                        <span className={modalStyles.modal_label}>Title</span>
+                        <input type="text" className={modalStyles.modal_input} value={localName} onChange={(e) => setLocalName(e.target.value)} />
+                    </div>
+                    <div className={modalStyles.modal_field}>
+                        <span className={modalStyles.modal_label}>Description</span>
+                        <textarea className={modalStyles.modal_textarea} value={localDesc} placeholder="Add a more detailed description..." onChange={(e) => setLocalDesc(e.target.value)} />
+                    </div>
+                    <div className={modalStyles.modal_field}>
+                        <span className={modalStyles.modal_label}>Priority</span>
+                        <select className={modalStyles.modal_select} value={localPriority} onChange={(e) => setLocalPriority(e.target.value)}>
+                            {PRIORITY_OPTIONS.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className={modalStyles.modal_field}>
+                        <span className={modalStyles.modal_label}>Status</span>
+                        <select className={modalStyles.modal_select} value={localStatus} onChange={(e) => setLocalStatus(e.target.value as ColumnStatus)}>
                         {STATUS_OPTIONS.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
@@ -153,12 +155,18 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
                     <span className={modalStyles.modal_label}>Due Date</span>
                     <input type="date" className={modalStyles.modal_input} value={localDueDate} onChange={(e) => setLocalDueDate(e.target.value)} />
                 </div>
-                <div className={modalStyles.modal_field}>
-                    <span className={modalStyles.modal_label}>Created</span>
-                    <p>{formatDate(task?.createdAt) || "—"}</p>
+                    <div className={modalStyles.modal_field}>
+                        <span className={modalStyles.modal_label}>Created</span>
+                        <p>{formatDate(task?.createdAt) || "—"}</p>
+                    </div>
+                    <hr className={modalStyles.modal_hr} />
+                    <button className={modalStyles.modal_submit} onClick={handleSave}>Save Changes</button>
                 </div>
-                <hr className={modalStyles.modal_hr} />
-                <button className={modalStyles.modal_submit} onClick={handleSave}>Save Changes</button>
+
+                {/* Right Column: Comments Section */}
+                {task?.id && (
+                    <CommentSection taskId={task.id} />
+                )}
             </div>
         </Modal>
     );
