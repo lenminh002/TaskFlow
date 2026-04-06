@@ -53,20 +53,22 @@ export default function EditableTitle({ boardId, initialName }: { boardId: strin
 
     if (editing) {
         return (
-            <input
-                ref={inputRef}
-                className={styles.title_input}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onBlur={save}
-                onKeyDown={(e) => {
-                    if (e.key === "Enter") save();
-                    if (e.key === "Escape") {
-                        setName(initialName);
-                        setEditing(false);
-                    }
-                }}
-            />
+            <div className={styles.input_wrapper} data-value={name}>
+                <input
+                    ref={inputRef}
+                    className={styles.title_input}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onBlur={save}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") save();
+                        if (e.key === "Escape") {
+                            setName(initialName);
+                            setEditing(false);
+                        }
+                    }}
+                />
+            </div>
         );
     }
 
