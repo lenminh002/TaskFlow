@@ -7,8 +7,7 @@ import { useState, useEffect } from 'react'
 import { useModal } from "@/hooks/useModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { fetchBoards, addBoard, deleteBoard, leaveBoard } from "@/lib/actions";
-import Modal from "@/components/Modal/Modal";
-import modalStyles from "@/components/Modal/Modal.module.css";
+import SingleFieldModalForm from "@/components/Modal/SingleFieldModalForm";
 import { useAutoFocus } from "@/hooks/useAutoFocus";
 import type { Board } from "@/type/types";
 
@@ -132,29 +131,18 @@ export default function NavBar() {
     }
 
     const modal = (
-        <Modal isOpen={isOpen} onClose={close} title="New Board">
-            {/* Body: Form handler for submitting a completely new high-level project board */}
-            <form
-                className={modalStyles.modal_body}
-                onSubmit={(e) => {
-                    e.preventDefault()
-                    handleAddBoard()
-                }}
-            >
-                <label className={modalStyles.modal_label}>Board Name</label>
-                <input
-                    ref={inputRef}
-                    type="text"
-                    className={modalStyles.modal_input}
-                    placeholder="Enter board name..."
-                    value={boardName}
-                    onChange={(e) => setBoardName(e.target.value)}
-                />
-                <button type="submit" className={modalStyles.modal_submit}>
-                    Create Board
-                </button>
-            </form>
-        </Modal>
+        <SingleFieldModalForm
+            isOpen={isOpen}
+            onClose={close}
+            onSubmit={handleAddBoard}
+            title="New Board"
+            label="Board Name"
+            value={boardName}
+            onChange={setBoardName}
+            submitLabel="Create Board"
+            placeholder="Enter board name..."
+            inputRef={inputRef}
+        />
     );
 
     const filteredBoards = boards.filter((board) => {

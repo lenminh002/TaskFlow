@@ -8,46 +8,33 @@
 
 import { createClient } from './supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Task, ColumnStatus, Board, TaskPriority, Comment } from '@/type/types'
-import { VALID_STATUSES, VALID_PRIORITIES } from '@/lib/constants'
+import type { Task, ColumnStatus, Board, Comment } from '@/type/types'
+import { mapTaskRow } from '@/lib/task-mappers'
 
 // ─── Shared Utilities ───────────────────────────────────────────────
 
-function validateStatus(status: unknown): ColumnStatus {
-    if (typeof status === 'string' && VALID_STATUSES.includes(status as ColumnStatus)) {
-        return status as ColumnStatus;
-    }
-    console.warn(`Invalid status "${status}" encountered, defaulting to "todo"`);
-    return "todo";
+function handleError(operation: string, error: { message?: string } | null): never {
+    const message = error?.message ?? 'Unknown error';
+    console.error(`Error ${operation}:`, message);
+    throw new Error(`Failed to ${operation}: ${message}`);
 }
 
-function handleError(operation: string, error: any): never {
-    console.error(`Error ${operation}:`, error.message);
-    throw new Error(`Failed to ${operation}: ${error.message}`);
-}
-
-function validatePriority(priority: unknown): TaskPriority | undefined {
-    if (!priority) return undefined;
-    if (typeof priority === 'string' && VALID_PRIORITIES.includes(priority as TaskPriority)) {
-        return priority as TaskPriority;
-    }
-    console.warn(`Invalid priority "${priority}" encountered, returning undefined`);
-    return undefined;
-}
-
-// Type definition for Supabase task row with joined user data
-interface TaskRow {
+interface CommentRow {
     id: string;
-    board_id: string;
-    name: string;
-    description?: string | null;
-    status: string;
-    priority?: string | null;
+    task_id: string;
+    user_id: string;
+    content: string;
     created_at: string;
-    due_date?: string | null;
-    position?: number | null;
-    assignee_id?: string | null;
-    users?: { username: string } | null;
+    is_system_activity?: boolean;
+    users?: { username?: string } | { username?: string }[] | null;
+}
+
+function getUsernameFromRelation(users: CommentRow['users']): string {
+    if (Array.isArray(users)) {
+        return users[0]?.username || 'Unknown User';
+    }
+
+    return users?.username || 'Unknown User';
 }
 
 // ─── Board actions (navbar items) ───────────────────────────────────
@@ -119,19 +106,7 @@ export async function fetchCards(boardId: string): Promise<Task[]> {
 
     if (error) handleError('fetch cards', error);
 
-    return (data ?? []).map((row: TaskRow) => ({
-        id: row.id,
-        boardId: row.board_id,
-        name: row.name,
-        description: row.description ?? undefined,
-        status: validateStatus(row.status),
-        priority: validatePriority(row.priority),
-        createdAt: row.created_at,
-        dueDate: row.due_date ?? undefined,
-        position: row.position ?? 0,
-        assigneeId: row.assignee_id ?? undefined,
-        assigneeName: row.users?.username ?? undefined,
-    }))
+    return (data ?? []).map(mapTaskRow)
 }
 
 /**
@@ -155,13 +130,7 @@ export async function addCard(card: { id: string; name: string; status: ColumnSt
 
     if (error) handleError('add card', error);
 
-    return {
-        id: data.id,
-        boardId: data.board_id,
-        name: data.name,
-        description: data.description ?? undefined,
-        status: validateStatus(data.status),
-    }
+    return mapTaskRow(data)
 }
 
 /**
@@ -219,7 +188,7 @@ export async function updateTaskPositions(updates: { id: string, position: numbe
  * @param id - Task UUID.
  * @param updates - Partial mapping of fields to mutate (name, description, priority, etc).
  */
-export async function updateCardDetails(id: string, updates: Partial<{ name: string; description: string; priority: string; due_date: string | null; status: string; assignee_id: string | null }>): Promise<boolean> {
+export async function updateCardDetails(id: string, updates: Partial<{ name: string; description: string | null; priority: string | null; due_date: string | null; status: string; assignee_id: string | null; labels: string[] }>): Promise<boolean> {
     const supabase = await createClient()
     const { error } = await supabase
         .from('tasks')
@@ -397,11 +366,11 @@ export async function fetchComments(taskId: string): Promise<Comment[]> {
         return []; // Return empty gracefully rather than hard-crashing the modal
     }
 
-    return (data || []).map((row: any) => ({
+    return (data || []).map((row: CommentRow) => ({
         id: row.id,
         taskId: row.task_id,
         userId: row.user_id,
-        username: row.users?.username || 'Unknown User',
+        username: getUsernameFromRelation(row.users),
         content: row.content,
         createdAt: row.created_at,
         isSystemActivity: row.is_system_activity,
@@ -439,7 +408,7 @@ export async function addComment(taskId: string, content: string): Promise<Comme
         id: data.id,
         taskId: data.task_id,
         userId: data.user_id,
-        username: (Array.isArray(data.users) ? data.users[0]?.username : (data.users as any)?.username) || 'Unknown User',
+        username: getUsernameFromRelation(data.users),
         content: data.content,
         createdAt: data.created_at,
     };

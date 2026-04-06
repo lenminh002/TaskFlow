@@ -11,6 +11,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { ensureSession } from "@/lib/auth-helpers";
+import { hasUserProfile } from "@/lib/user-helpers";
 import WelcomeModal from "./WelcomeModal";
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -29,7 +31,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             const supabase = createClient();
             
             // Extract active JWT cookie session
-            let currentSession = (await supabase.auth.getSession()).data.session;
+            let currentSession = await ensureSession(supabase);
             
             if (!currentSession) {
                 if (process.env.NODE_ENV === 'development') {
@@ -50,18 +52,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 setUserId(uid);
                 
                 // Read from Public public users table to verify if they went through the Welcome Gate
-                const { data: profile, error: profileError } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('id', uid)
-                    .single();
+                let profileExists = false;
 
-                if (profileError && profileError.code !== 'PGRST116') {
+                try {
+                    profileExists = await hasUserProfile(supabase, uid);
+                } catch (profileError) {
                     console.error("Failed to verify user profile:", profileError);
                     return;
                 }
 
-                if (!profile) {
+                if (!profileExists) {
                     if (process.env.NODE_ENV === 'development') {
                         console.log("No users table row detected. Staging Welcome Interceptor.");
                     }

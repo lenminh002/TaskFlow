@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import Modal from "./Modal/Modal";
-import modalStyles from "@/components/Modal/Modal.module.css";
 import { addBoardMember } from "@/lib/actions";
 import { useRouter } from "next/navigation";
+import SingleFieldModalForm from "@/components/Modal/SingleFieldModalForm";
 import { useModal } from "@/hooks/useModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 
@@ -26,8 +25,7 @@ export default function AddMemberButton({ boardId }: { boardId: string }) {
     useEscapeKey(close, isOpen);
 
     // Execute Server Action attaching the unverified UUID natively into the `board_members` matrix table.
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
         if (!memberId.trim()) return;
         setLoading(true);
         try {
@@ -60,27 +58,19 @@ export default function AddMemberButton({ boardId }: { boardId: string }) {
             >
                 + Add Member
             </button>
-            <Modal isOpen={isOpen} onClose={close} title="Add Team Member">
-                <form onSubmit={handleSubmit} className={modalStyles.modal_body}>
-                    <label className={modalStyles.modal_label}>User UUID</label>
-                    <input
-                        type="text"
-                        value={memberId}
-                        onChange={(e) => setMemberId(e.target.value)}
-                        placeholder="Paste a User ID here..."
-                        className={modalStyles.modal_input}
-                        autoFocus
-                        required
-                    />
-                    <button
-                        type="submit"
-                        disabled={loading || !memberId.trim()}
-                        className={modalStyles.modal_submit}
-                    >
-                        {loading ? "Adding..." : "Add to Board"}
-                    </button>
-                </form>
-            </Modal>
+            <SingleFieldModalForm
+                isOpen={isOpen}
+                onClose={close}
+                onSubmit={handleSubmit}
+                title="Add Team Member"
+                label="User UUID"
+                value={memberId}
+                onChange={setMemberId}
+                submitLabel={loading ? "Adding..." : "Add to Board"}
+                placeholder="Paste a User ID here..."
+                autoFocus
+                disabled={loading || !memberId.trim()}
+            />
         </>
     );
 }

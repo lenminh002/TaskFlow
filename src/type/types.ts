@@ -50,6 +50,8 @@ export interface Task {
   assigneeId?: string;
   /** Populated username linked to the assigneeId */
   assigneeName?: string;
+  /** Custom assigned labels */
+  labels?: string[];
 }
 
 /**

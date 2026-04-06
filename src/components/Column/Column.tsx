@@ -4,8 +4,7 @@ import { useState, useMemo } from "react";
 import { useModal } from "@/hooks/useModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import styles from "./Column.module.css";
-import Modal from "@/components/Modal/Modal";
-import modalStyles from "@/components/Modal/Modal.module.css";
+import SingleFieldModalForm from "@/components/Modal/SingleFieldModalForm";
 import { useAutoFocus } from "@/hooks/useAutoFocus";
 import Card from "@/components/Card/Card";
 import type { Task, ColumnStatus } from "@/type/types";
@@ -32,12 +31,13 @@ interface ColumnProps {
     status: ColumnStatus;
     tasks?: Task[];
     teamMembers?: {id: string, username: string}[];
+    boardLabels?: string[];
     onAddCard?: (name: string) => void;
     onUpdateCard?: (id: string, updates: Partial<Task>) => void;
     onRemoveCard?: (id: string) => void;
 }
 
-export default function Column({ title, status, tasks = [], teamMembers = [], onAddCard, onUpdateCard, onRemoveCard }: ColumnProps) {
+export default function Column({ title, status, tasks = [], teamMembers = [], boardLabels = [], onAddCard, onUpdateCard, onRemoveCard }: ColumnProps) {
     const { isOpen, open, close } = useModal();
     const [cardName, setCardName] = useState("");
     const inputRef = useAutoFocus<HTMLInputElement>(isOpen);
@@ -75,29 +75,18 @@ export default function Column({ title, status, tasks = [], teamMembers = [], on
     }
 
     const modal = (
-        <Modal isOpen={isOpen} onClose={close} title="New Card">
-            {/* Body: Form handler for submitting a new card to this specific column */}
-            <form
-                className={modalStyles.modal_body}
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSubmit();
-                }}
-            >
-                <label className={modalStyles.modal_label}>Card Name</label>
-                <input
-                    ref={inputRef}
-                    type="text"
-                    className={modalStyles.modal_input}
-                    placeholder="Enter card name..."
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                />
-                <button type="submit" className={modalStyles.modal_submit}>
-                    Add Card
-                </button>
-            </form>
-        </Modal>
+        <SingleFieldModalForm
+            isOpen={isOpen}
+            onClose={close}
+            onSubmit={handleSubmit}
+            title="New Card"
+            label="Card Name"
+            value={cardName}
+            onChange={setCardName}
+            submitLabel="Add Card"
+            placeholder="Enter card name..."
+            inputRef={inputRef}
+        />
     );
 
     return (
@@ -126,6 +115,7 @@ export default function Column({ title, status, tasks = [], teamMembers = [], on
                             key={task.id}
                             task={task}
                             teamMembers={teamMembers}
+                            boardLabels={boardLabels}
                             onUpdateCard={onUpdateCard}
                             onRemoveCard={onRemoveCard}
                         />

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useModal } from "@/hooks/useModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import type { Task, ColumnStatus } from "@/type/types";
+import type { Task, ColumnStatus, TaskPriority } from "@/type/types";
 import styles from "./Card.module.css";
 import Modal from "@/components/Modal/Modal";
 import modalStyles from "@/components/Modal/Modal.module.css";
@@ -29,12 +29,13 @@ import CommentSection from "@/components/CommentSection/CommentSection";
 interface CardProps {
     task?: Task;
     teamMembers?: { id: string, username: string }[];
+    boardLabels?: string[];
     onClick?: () => void;
     onUpdateCard?: (id: string, updates: Partial<Task>) => void;
     onRemoveCard?: (id: string) => void;
 }
 
-export default function Card({ task, teamMembers = [], onClick, onUpdateCard, onRemoveCard }: CardProps) {
+export default function Card({ task, teamMembers = [], boardLabels = [], onClick, onUpdateCard, onRemoveCard }: CardProps) {
     const { isOpen, open, close } = useModal();
     const title = task?.name ?? "Task";
     const [localName, setLocalName] = useState(task?.name || "Task");
@@ -43,6 +44,8 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
     const [localStatus, setLocalStatus] = useState<ColumnStatus>(task?.status || "todo");
     const [localAssigneeId, setLocalAssigneeId] = useState(task?.assigneeId || "");
     const [localDueDate, setLocalDueDate] = useState(parseSafeDate(task?.dueDate));
+    const [localLabels, setLocalLabels] = useState<string[]>(task?.labels || []);
+    const [labelInput, setLabelInput] = useState("");
 
     // Connects the component to the dnd-kit Sortable ecosystem.
     // 'attributes' and 'listeners' govern keyboard accessibility and pointer interactions.
@@ -61,23 +64,18 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
         opacity: isDragging ? 0.4 : 1,
     };
 
-    /**
-     * Modal Lifecycle Hook: Whenever the user opens the modal or the parent `task` prop changes,
-     * this hook forcefully overrides the temporary modal inputs with the most up-to-date accurate database data.
-     * This solves "stale state" issues if you open the modal quickly after another computer updated the same card.
-     */
-    useEffect(() => {
-        if (isOpen) {
-            setLocalName(task?.name || "Task");
-            setLocalDesc(task?.description || "");
-            setLocalPriority(task?.priority || "");
-            setLocalStatus(task?.status || "todo");
-            setLocalAssigneeId(task?.assigneeId || ""); // Tracks UUID delegates structurally against `board_members`
-            setLocalDueDate(parseSafeDate(task?.dueDate));
-        }
-    }, [isOpen, task]);
-
     useEscapeKey(close, isOpen);
+
+    function resetLocalState() {
+        setLocalName(task?.name || "Task");
+        setLocalDesc(task?.description || "");
+        setLocalPriority(task?.priority || "");
+        setLocalStatus(task?.status || "todo");
+        setLocalAssigneeId(task?.assigneeId || "");
+        setLocalDueDate(parseSafeDate(task?.dueDate));
+        setLocalLabels(task?.labels || []);
+        setLabelInput("");
+    }
 
     /**
      * Intercepts the Card click. 
@@ -85,6 +83,7 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
      * programmatically to prevent colliding drag behaviors.
      */
     const handleOpen = () => {
+        resetLocalState();
         onClick?.();
         open();
     };
@@ -97,14 +96,17 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
     const handleSave = () => {
         if (task?.id && onUpdateCard) {
             const selectedMember = teamMembers.find(m => m.id === localAssigneeId);
+            const priority = localPriority === "" ? undefined : localPriority as TaskPriority;
+            const dueDate = localDueDate ? new Date(localDueDate) : undefined;
             onUpdateCard(task.id, {
                 name: localName.trim() || "Untitled Task",
                 description: localDesc,
-                priority: (localPriority || "") as any,
+                priority,
                 status: localStatus,
                 assigneeId: localAssigneeId || "",
                 assigneeName: selectedMember ? selectedMember.username : undefined,
-                dueDate: localDueDate ? new Date(localDueDate) : "" as any
+                dueDate,
+                labels: localLabels
             });
         }
         close();
@@ -122,6 +124,99 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
                     <div className={modalStyles.modal_field}>
                         <span className={modalStyles.modal_label}>Description</span>
                         <textarea className={modalStyles.modal_textarea} value={localDesc} placeholder="Add a more detailed description..." onChange={(e) => setLocalDesc(e.target.value)} />
+                    </div>
+                    <div className={modalStyles.modal_field}>
+                        <span className={modalStyles.modal_label}>Labels</span>
+
+                        {/* 
+                          Labels Wrapper: 
+                          Dynamically merges global tags (`boardLabels`) with any newly typed tags (`localLabels`).
+                          This ensures instantly created tags become clickable assignable pills immediately without requiring a full board refresh.
+                        */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.5rem' }}>
+                            {Array.from(new Set([...boardLabels, ...localLabels])).sort().map((lbl) => {
+                                const isActive = localLabels.includes(lbl);
+                                return (
+                                    <div key={lbl} style={{ display: 'flex', alignItems: 'center', background: isActive ? '#0070f3' : '#fff', border: `1px solid ${isActive ? '#0070f3' : '#ccc'}`, borderRadius: '999px', overflow: 'hidden' }}>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                if (!isActive) setLocalLabels(prev => [...prev, lbl]);
+                                            }}
+                                            style={{
+                                                padding: '0.25rem 0.6rem',
+                                                border: 'none',
+                                                background: 'transparent',
+                                                color: isActive ? '#fff' : '#333',
+                                                cursor: isActive ? 'default' : 'pointer',
+                                                fontSize: '0.75rem',
+                                            }}
+                                        >
+                                            {lbl}
+                                        </button>
+                                        {isActive && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    setLocalLabels(prev => prev.filter(l => l !== lbl));
+                                                }}
+                                                style={{
+                                                    padding: '0.25rem 0.5rem',
+                                                    border: 'none',
+                                                    background: 'rgba(0,0,0,0.1)',
+                                                    color: '#fff',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.85rem',
+                                                    lineHeight: 1,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                }}
+                                                title={`Remove "${lbl}" from this card`}
+                                            >
+                                                ×
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input
+                                type="text"
+                                className={modalStyles.modal_input}
+                                placeholder="Create new label..."
+                                value={labelInput}
+                                onChange={(e) => setLabelInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        const val = labelInput.trim();
+                                        if (val && !localLabels.includes(val)) {
+                                            setLocalLabels(prev => [...prev, val]);
+                                        }
+                                        setLabelInput("");
+                                    }
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    const val = labelInput.trim();
+                                    if (val && !localLabels.includes(val)) {
+                                        setLocalLabels(prev => [...prev, val]);
+                                    }
+                                    setLabelInput("");
+                                }}
+                                style={{ padding: '0 0.75rem', cursor: 'pointer', background: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}
+                            >
+                                Add
+                            </button>
+                        </div>
                     </div>
                     <div className={modalStyles.modal_field}>
                         <span className={modalStyles.modal_label}>Priority</span>
@@ -215,6 +310,20 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
 
                 {/* Content Area & Metadata Bubbles */}
                 <div className={styles.card_content}>
+                    {task?.labels && task.labels.length > 0 && (
+                        <div className={styles.card_labels}>
+                            {task.labels.map((lbl, idx) => {
+                                // A quick simple hash to consistently color the labels
+                                const hash = lbl.split('').reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
+                                const hue = Math.abs(hash) % 360;
+                                return (
+                                    <span key={idx} className={styles.card_label_chip} style={{ backgroundColor: `hsl(${hue}, 70%, 90%)`, color: `hsl(${hue}, 80%, 25%)` }}>
+                                        {lbl}
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    )}
                     {task?.description
                         ? <p className={styles.card_description}>{task.description}</p>
                         : <p className={styles.card_description}>No description</p>

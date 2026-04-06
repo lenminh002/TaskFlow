@@ -9,6 +9,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import Card from "@/components/Card/Card";
 import { createClient } from "@/lib/supabase/client";
 import { BOARD_COLUMNS } from "@/lib/constants";
+import { mapTaskRow } from "@/lib/task-mappers";
 
 /**
  * @file BoardClient.tsx
@@ -25,11 +26,21 @@ import { BOARD_COLUMNS } from "@/lib/constants";
  */
 const sortTasksByPosition = (taskList: Task[]) => [...taskList].sort((a, b) => (a.position || 0) - (b.position || 0));
 
+type CardUpdatePayload = Partial<{
+    name: string;
+    description: string | null;
+    priority: Task["priority"] | null;
+    status: ColumnStatus;
+    assignee_id: string | null;
+    labels: string[];
+    due_date: string | null;
+}>;
+
 export default function BoardClient({ boardId, initialTasks, teamMembers = [], className, children }: { boardId: string; initialTasks: Task[]; teamMembers?: { id: string, username: string }[]; className?: string; children?: React.ReactNode }) {
     // During initial component mount, we forcefully re-sort the prop tasks fetched from the server.
     // This ensures that even if Supabase returned rows asynchronously out-of-order, 
     // the local sequence flawlessly honors the floating-point `position` column.
-    const sortedInitial = sortTasksByPosition(initialTasks);
+    const sortedInitial = useMemo(() => sortTasksByPosition(initialTasks), [initialTasks]);
 
     // `tasks` holds the entire application's source of truth for all columns simultaneously.
     const [tasks, setTasks] = useState<Task[]>(sortedInitial);
@@ -60,15 +71,6 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
     useEffect(() => {
         isDraggingRef.current = !!activeTask;
     }, [activeTask]);
-
-    // Rehydration State Sync Hook
-    // Only fires when the server passes genuinely new initialTasks (e.g., after navigation).
-    // Does NOT fire when a drag ends — that was causing the reorder to snap back.
-    useEffect(() => {
-        if (!isDraggingRef.current) {
-            setTasks(sortTasksByPosition(initialTasks));
-        }
-    }, [initialTasks]);
 
     /**
      * Collaborative Supabase Realtime Socket Setup
@@ -118,19 +120,7 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
                         }
 
                         if (!isDraggingRef.current && data) {
-                            const mapped: Task[] = data.map((row: any) => ({
-                                id: row.id,
-                                boardId: row.board_id,
-                                name: row.name,
-                                description: row.description ?? undefined,
-                                status: row.status ?? "todo",
-                                priority: row.priority ?? undefined,
-                                createdAt: row.created_at,
-                                dueDate: row.due_date ?? undefined,
-                                position: row.position ?? 0,
-                                assigneeId: row.assignee_id ?? undefined,
-                                assigneeName: row.users?.username ?? undefined,
-                            }));
+                            const mapped = data.map(mapTaskRow);
                             setTasks(sortTasksByPosition(mapped));
                         }
                     }, 500);
@@ -150,22 +140,45 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
         };
     }, [boardId]);
 
+    // ─── Label Filtering State ─────────────────────────────────────────
+
+    // Tracks which labels the user has actively clicked in the global filter toolbar.
+    const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+
+    /**
+     * Extracts and deduplicates every single label assigned natively to any task on the board.
+     * Evaluated iteratively to generate the top filter bar rendering.
+     * Uses useMemo to avoid needlessly running the Set traversal on every DOM render cycle.
+     */
+    const uniqueLabels = useMemo(() => {
+        const _labels = new Set<string>();
+        tasks.forEach(t => t.labels?.forEach(l => _labels.add(l)));
+        return Array.from(_labels).sort();
+    }, [tasks]);
+
+    /**
+     * The master filtered pipeline.
+     * Intercepts the raw `tasks` array and trims it down based on the `selectedLabels`.
+     * If no filters are active, it acts dynamically as a bypass, returning all tasks.
+     */
+    const filteredTasks = useMemo(() => {
+        if (selectedLabels.length === 0) return tasks;
+        return tasks.filter(t => t.labels?.some(l => selectedLabels.includes(l)));
+    }, [tasks, selectedLabels]);
+
     // Memoize the tasks by column status to prevent repeated O(N) filter sweeps during every single render pass.
     const groupedTasks = useMemo(() => {
         const groups: Record<string, Task[]> = { todo: [], in_progress: [], in_review: [], done: [] };
-        tasks.forEach(t => {
+        filteredTasks.forEach(t => {
             if (t.status && groups[t.status]) {
                 groups[t.status].push(t);
             }
         });
         return groups;
-    }, [tasks]);
+    }, [filteredTasks]);
 
     // SSR hydration mismatch fix workaround for @dnd-kit generated aria attributes
-    const [isMounted, setIsMounted] = useState(false);
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
+    const isMounted = typeof document !== "undefined";
 
     // Initialize dnd-kit sensors: PointerSensor allows dragging with mice,
     // while TouchSensor ensures standard drag gestures don't block mobile page scrolling (requiring a 250ms press).
@@ -251,12 +264,13 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
             prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
         );
 
-        const dbUpdates: Record<string, string | null> = {};
+        const dbUpdates: CardUpdatePayload = {};
         if (updates.name !== undefined) dbUpdates.name = updates.name;
         if (updates.description !== undefined) dbUpdates.description = updates.description === "" ? null : updates.description;
-        if (updates.priority !== undefined) dbUpdates.priority = (updates.priority as any) === "" ? null : updates.priority;
+        if (updates.priority !== undefined) dbUpdates.priority = updates.priority ?? null;
         if (updates.status !== undefined) dbUpdates.status = updates.status;
         if (updates.assigneeId !== undefined) dbUpdates.assignee_id = updates.assigneeId === "" ? null : updates.assigneeId;
+        if (updates.labels !== undefined) dbUpdates.labels = updates.labels;
         if (updates.dueDate !== undefined) {
             dbUpdates.due_date = updates.dueDate instanceof Date
                 ? updates.dueDate.toISOString()
@@ -271,6 +285,34 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
             console.error("Failed to update task details — rolling back.", e);
             setTasks(prevTasks);
         }
+    }
+
+    /**
+     * Delete a label entirely from the board. 
+     * Eradicates the label on all tasks asynchronously.
+     */
+    async function deleteGlobalLabel(labelToDelete: string) {
+        const affectedTasks = tasks.filter(t => t.labels?.includes(labelToDelete));
+        if (affectedTasks.length === 0) return;
+
+        // Optimistically pull it out of all local copies
+        setTasks(prev => prev.map(t => {
+            if (t.labels?.includes(labelToDelete)) {
+                return { ...t, labels: t.labels.filter(l => l !== labelToDelete) };
+            }
+            return t;
+        }));
+
+        // Also remove from selectedFilters actively to avoid ghosting
+        setSelectedLabels(prev => prev.filter(l => l !== labelToDelete));
+
+        // Submit sequential patches (Supabase doesn't natively expose an array_remove RPC by default without custom SQL functions)
+        startCooldown();
+        Promise.all(affectedTasks.map(t =>
+            updateCardDetails(t.id, { labels: t.labels!.filter(l => l !== labelToDelete) })
+        )).catch(e => {
+            console.error("Failed to fully delete label globally:", e);
+        });
     }
 
     /**
@@ -356,7 +398,7 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
         const overId = over.id as string;
         const isOverColumn = over.data.current?.type === "Column";
 
-        let updatesToSync: { id: string, position: number, status: string }[] = [];
+        const updatesToSync: { id: string, position: number, status: string }[] = [];
 
         // handleDragOver already moved the card to the correct position in the array.
         // Here we just need to handle the "drop onto empty column" case and recalculate positions.
@@ -412,6 +454,75 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
         >
+            <div style={{ paddingBottom: '1rem', position: 'sticky', left: 0 }}>
+                {uniqueLabels.length > 0 && (
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#666' }}>Filter:</span>
+                        {uniqueLabels.map(label => {
+                            const isSelected = selectedLabels.includes(label);
+                            return (
+                                <div key={label} style={{ display: 'flex', alignItems: 'center', background: isSelected ? '#0070f3' : '#fff', border: `1px solid ${isSelected ? '#0070f3' : '#ccc'}`, borderRadius: '999px', overflow: 'hidden' }}>
+                                    <button
+                                        onClick={() => setSelectedLabels(prev =>
+                                            isSelected ? prev.filter(l => l !== label) : [...prev, label]
+                                        )}
+                                        style={{
+                                            padding: '0.25rem 0.5rem 0.25rem 0.75rem',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            color: isSelected ? '#fff' : '#333',
+                                            cursor: 'pointer',
+                                            fontSize: '0.875rem',
+                                            transition: 'all 0.2s',
+                                        }}
+                                    >
+                                        {label}
+                                    </button>
+                                    <button
+                                        title={`Delete "${label}" from ALL cards on this board`}
+                                        onClick={() => {
+                                            if (window.confirm(`Are you sure you want to completely remove the label "${label}" from all tasks?`)) {
+                                                deleteGlobalLabel(label);
+                                            }
+                                        }}
+                                        style={{
+                                            padding: '0.25rem 0.5rem',
+                                            border: 'none',
+                                            borderLeft: `1px solid ${isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'}`,
+                                            background: isSelected ? 'rgba(0,0,0,0.15)' : '#f9f9f9',
+                                            color: isSelected ? '#fff' : '#666',
+                                            cursor: 'pointer',
+                                            fontSize: '0.75rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            transition: 'background 0.2s'
+                                        }}
+                                    >
+                                        🗑️
+                                    </button>
+                                </div>
+                            );
+                        })}
+                        {selectedLabels.length > 0 && (
+                            <button
+                                onClick={() => setSelectedLabels([])}
+                                style={{
+                                    padding: '0.25rem 0.5rem',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    color: '#888',
+                                    cursor: 'pointer',
+                                    fontSize: '0.875rem',
+                                    textDecoration: 'underline'
+                                }}
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
             <div className={className}>
                 {BOARD_COLUMNS.map(({ title, status }) => {
                     const columnTasks = groupedTasks[status as string] || [];
@@ -422,6 +533,7 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
                             status={status}
                             tasks={columnTasks}
                             teamMembers={teamMembers}
+                            boardLabels={uniqueLabels}
                             onAddCard={(name) => addTask(status, name)}
                             onUpdateCard={(id, updates) => updateTask(id, updates)}
                             onRemoveCard={removeTask}
@@ -434,7 +546,7 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
             {typeof document !== "undefined" && (
                 <DragOverlay>
                     {activeTask ? (
-                        <Card task={activeTask} teamMembers={teamMembers} />
+                        <Card task={activeTask} teamMembers={teamMembers} boardLabels={uniqueLabels} />
                     ) : null}
                 </DragOverlay>
             )}

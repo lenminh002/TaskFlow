@@ -5,14 +5,14 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { getSessionUserId } from "@/lib/auth-helpers";
 
 /**
  * The Root Landing Page of the application.
  */
 export default async function Home() {
   const supabase = await createClient();
-  // Fetch active session to display the User ID for easier collaboration
-  const { data: { session } } = await supabase.auth.getSession();
+  const userId = await getSessionUserId(supabase);
 
   return (
     <div style={{
@@ -26,7 +26,7 @@ export default async function Home() {
       height: '100%',
     }}>
       {/* Top right corner ID badge for quick copying during team onboarding */}
-      {session?.user?.id && (
+      {userId && (
         <div style={{
           position: 'absolute',
           top: '1.5rem',
@@ -37,7 +37,7 @@ export default async function Home() {
           fontSize: '0.875rem',
           color: '#666',
         }}>
-          Your ID: {session.user.id}
+          Your ID: {userId}
         </div>
       )}
       <h1>Select or create a project to start</h1>

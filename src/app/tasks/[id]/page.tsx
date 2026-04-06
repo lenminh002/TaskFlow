@@ -10,7 +10,9 @@ import BoardClient from "./BoardClient";
 import EditableTitle from "./EditableTitle";
 import AddMemberButton from "@/components/AddMemberButton";
 import { fetchCards, fetchBoardMembersFull } from "@/lib/actions";
+import { getSessionUserId } from "@/lib/auth-helpers";
 import { createClient } from "@/lib/supabase/server";
+import { fetchUsernameById } from "@/lib/user-helpers";
 
 /** 
  * Entrypoint for data hydration on Task board routes.
@@ -25,8 +27,7 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
     const { id } = await params;
 
     const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
+    const userId = await getSessionUserId(supabase);
 
     // Query Supabase directly to extract the specific board name and owner for the page header
     const { data: board, error } = await supabase
@@ -39,7 +40,7 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
         return (
             <div className={styles.page} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
                 <div style={{ textAlign: "center", margin: "auto" }}>
-                    <h2>You don't have permission to view this board</h2>
+                    <h2>You don&apos;t have permission to view this board</h2>
                     <p style={{ marginTop: '0.5rem', color: '#666' }}>Please check the URL or ensure you created this board.</p>
                 </div>
             </div>
@@ -51,16 +52,11 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
 
     // Attempt lookup natively for UX author mapping
     if (board.user_id) {
-        const { data: profile, error } = await supabase
-            .from('users')
-            .select('username')
-            .eq('id', board.user_id)
-            .single();
-
-        if (error) {
-            console.warn(`User profile not found for board owner: ${board.user_id}`, error);
-        } else if (profile) {
-            creatorUsername = profile.username;
+        const username = await fetchUsernameById(supabase, board.user_id);
+        if (!username) {
+            console.warn(`User profile not found for board owner: ${board.user_id}`);
+        } else {
+            creatorUsername = username;
         }
     }
 
@@ -98,7 +94,7 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
             {/* A scrollable container clamping horizontal workflow layouts to standard screen sizes */}
             <BoardContainer className={styles.board}>
                 {/* Mount the interactive React core encapsulating state logic for drag-and-drop actions */}
-                <BoardClient boardId={id} initialTasks={cards} teamMembers={teamMembers} className={styles.columns}>
+                <BoardClient key={id} boardId={id} initialTasks={cards} teamMembers={teamMembers} className={styles.columns}>
                     <button className={styles.add_column}>+</button>
                     {/* Inject a non-shrinking visual pad preventing the rightmost content from hugging the edge */}
                     <div style={{ minWidth: '8px', flexShrink: 0 }} />

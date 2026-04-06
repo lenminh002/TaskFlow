@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { fetchComments, addComment, deleteComment } from "@/lib/actions";
+import { getSessionUserId } from "@/lib/auth-helpers";
 import { createClient } from "@/lib/supabase/client";
 import type { Comment } from "@/type/types";
 import styles from "./CommentSection.module.css";
@@ -20,7 +21,7 @@ export default function CommentSection({ taskId }: CommentSectionProps) {
 
     useEffect(() => {
         const supabase = createClient();
-        supabase.auth.getSession().then(({ data }) => setCurrentUserId(data.session?.user?.id || ""));
+        getSessionUserId(supabase).then((userId) => setCurrentUserId(userId || ""));
 
         setIsLoading(true);
         fetchComments(taskId)
@@ -54,7 +55,7 @@ export default function CommentSection({ taskId }: CommentSectionProps) {
         setComments(comments.filter(c => c.id !== commentId));
         try {
             await deleteComment(commentId);
-        } catch (error) {
+        } catch {
             alert("Failed to delete comment");
             setComments(prev);
         }
