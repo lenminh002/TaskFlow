@@ -1,0 +1,151 @@
+/* Shared generic styling for Modals across the application */
+
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
+.modal {
+    width: min(100%, 24rem);
+    padding: 1.25rem;
+    background-color: #ffffff;
+    border: var(--neo-border);
+    box-shadow: var(--neo-shadow-2xl);
+}
+
+.modal_header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.modal_title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal_close {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    line-height: 1;
+    font-size: 1.5rem;
+    cursor: pointer;
+    background: #ffffff;
+    border: var(--neo-border);
+    box-shadow: var(--neo-shadow-md);
+}
+
+.modal_close:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: var(--neo-shadow-lg);
+}
+
+.modal_close:active {
+    transform: translate(1px, 1px);
+    box-shadow: var(--neo-shadow-sm);
+}
+
+.modal_hr {
+    border: none;
+    border-top: 1px solid #000000;
+    margin: 0.75rem 0 1rem;
+}
+
+.modal_body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.modal_field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.modal_textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;
+    border: var(--neo-border);
+    box-shadow: var(--neo-shadow-md);
+    outline: none;
+    resize: vertical;
+    transition: all 0.1s ease;
+    font-family: inherit;
+}
+
+.modal_textarea:focus {
+    transform: translate(-1px, -1px);
+    box-shadow: var(--neo-shadow-lg);
+}
+
+.modal_select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;
+    border: var(--neo-border);
+    box-shadow: var(--neo-shadow-md);
+    outline: none;
+    background: white;
+    cursor: pointer;
+    transition: all 0.1s ease;
+}
+
+.modal_select:focus {
+    transform: translate(-1px, -1px);
+    box-shadow: var(--neo-shadow-lg);
+}
+
+.modal_label {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.modal_input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;
+    border: var(--neo-border);
+    box-shadow: var(--neo-shadow-md);
+    outline: none;
+    transition: all 0.1s ease;
+}
+
+.modal_input:focus {
+    transform: translate(-1px, -1px);
+    box-shadow: var(--neo-shadow-lg);
+}
+
+.modal_submit {
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: #000000;
+    color: #ffffff;
+    border: var(--neo-border);
+    box-shadow: var(--neo-shadow-lg);
+    transition: all 0.1s ease;
+}
+
+.modal_submit:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--neo-shadow-xl);
+}
+
+.modal_submit:active {
+    transform: translate(2px, 2px);
+    box-shadow: var(--neo-shadow-sm);
+}

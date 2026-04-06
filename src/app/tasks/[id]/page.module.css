@@ -21,11 +21,29 @@
     flex-shrink: 0;
     text-align: center;
     width: 100%;
-    border: 2px solid #000000;
-    box-shadow: 4px 4px 0px #000;
+    border: none;
+    border-bottom: 2px solid transparent;
+    /* Reserve layout space to prevent jumping */
+    background-image: linear-gradient(#000000, #000000);
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    background-size: 0% 2px;
+    /* Start hidden */
     padding: 0.1rem 0.5rem;
     outline: none;
-    background: #ffffff;
+    animation: expandBorder 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    /* Expand smoothly off mount */
+}
+
+@keyframes expandBorder {
+    from {
+        background-size: 0% 2px;
+    }
+
+    to {
+        /* Restricts the fully expanded border to 30% of the screen width for a sleek, compact look */
+        background-size: 30% 2px;
+    }
 }
 
 .columns {
@@ -47,7 +65,7 @@
     overflow-y: hidden;
     overscroll-behavior: contain;
     padding: 2rem;
-    border: 2px solid #000;
+    border: var(--neo-border);
     background-color: #e4e4e4;
     box-shadow: 0px 0px 5px #000;
 

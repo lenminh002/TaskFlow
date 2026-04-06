@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Column from "@/components/Column/Column";
-import { addCard, removeCard, updateTaskPositions } from "@/lib/actions";
+import { addCard, removeCard, updateTaskPositions, updateCardDetails } from "@/lib/actions";
 import type { Task, ColumnStatus } from "@/type/types";
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay, closestCorners, DragStartEvent, DragEndEvent, DragOverEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -38,6 +38,23 @@ export default function BoardClient({ boardId, initialTasks, className, children
 
     // `activeTask` specifically tracks whichever piece of DOM the user is currently holding with their mouse/finger.
     const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+    // Memoize the tasks by column status to prevent repeated O(N) filter sweeps during every single render pass.
+    const groupedTasks = useMemo(() => {
+        const groups: Record<string, Task[]> = { todo: [], in_progress: [], in_review: [], done: [] };
+        tasks.forEach(t => {
+            if (t.status && groups[t.status]) {
+                groups[t.status].push(t);
+            }
+        });
+        return groups;
+    }, [tasks]);
+
+    // SSR hydration mismatch fix workaround for @dnd-kit generated aria attributes
+    const [isMounted, setIsMounted] = useState(false);
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // Initialize dnd-kit sensors: PointerSensor allows dragging with mice,
     // while TouchSensor ensures standard drag gestures don't block mobile page scrolling (requiring a 250ms press).
@@ -83,10 +100,12 @@ export default function BoardClient({ boardId, initialTasks, className, children
 
         setTasks((prev) => [...prev, newTask]);
 
-        const result = await addCard({ id: newTask.id, name: newTask.name, status: status, boardId: boardId });
-        if (result) {
-            updateTaskPositions([{ id: newTask.id, position: newPos, status: status }]);
-        } else {
+        try {
+            await addCard({ id: newTask.id, name: newTask.name, status: status, boardId: boardId });
+            // Await position sync to ensure the new task's order is persisted before the user can interact further.
+            await updateTaskPositions([{ id: newTask.id, position: newPos, status: status }]);
+        } catch (e) {
+            console.error("Failed to add new task:", e);
             setTasks((prev) => prev.filter((t) => t.id !== newTask.id));
         }
     }
@@ -99,8 +118,10 @@ export default function BoardClient({ boardId, initialTasks, className, children
     async function removeTask(taskId: string) {
         const prevTasks = tasks;
         setTasks((prev) => prev.filter((task) => task.id !== taskId));
-        const success = await removeCard(taskId);
-        if (!success) {
+        try {
+            await removeCard(taskId);
+        } catch (e) {
+            console.error("Failed to remove task:", e);
             setTasks(prevTasks);
         }
     }
@@ -112,6 +133,10 @@ export default function BoardClient({ boardId, initialTasks, className, children
      * @param updates - Object containing the fields to update (e.g. description, priority).
      */
     async function updateTask(id: string, updates: Partial<Task>) {
+        // Snapshot previous state for rollback if the DB write fails.
+        const prevTasks = tasks;
+
+        // Optimistic UI update — apply changes immediately.
         setTasks((prev) =>
             prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
         );
@@ -126,11 +151,12 @@ export default function BoardClient({ boardId, initialTasks, className, children
                 : updates.dueDate;
         }
 
-        const { updateCardDetails } = await import("@/lib/actions");
-        const result = await updateCardDetails(id, dbUpdates);
-
-        if (!result) {
-            console.error("Failed to update task details");
+        try {
+            await updateCardDetails(id, dbUpdates);
+        } catch (e) {
+            // Rollback: restore the previous task state since the DB write failed.
+            console.error("Failed to update task details — rolling back.", e);
+            setTasks(prevTasks);
         }
     }
 
@@ -236,11 +262,20 @@ export default function BoardClient({ boardId, initialTasks, className, children
 
             if (updatesToSync.length > 0) {
                 // Dispatched implicitly in the background
-                updateTaskPositions(updatesToSync);
+                try {
+                    updateTaskPositions(updatesToSync);
+                } catch (e) {
+                    console.error("Failed to sync drag positions:", e);
+                }
             }
 
             return newTasks;
         });
+    }
+
+    // SSR Guard for dnd-kit dynamic aria attributes hydration mismatch
+    if (!isMounted) {
+        return null;
     }
 
     return (
@@ -253,7 +288,7 @@ export default function BoardClient({ boardId, initialTasks, className, children
         >
             <div className={className}>
                 {BOARD_COLUMNS.map(({ title, status }) => {
-                    const columnTasks = tasks.filter((t) => t.status === status);
+                    const columnTasks = groupedTasks[status as string] || [];
                     return (
                         <Column
                             key={status}

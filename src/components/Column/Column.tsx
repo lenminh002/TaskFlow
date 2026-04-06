@@ -1,10 +1,12 @@
 "use client";
 
-import { createPortal } from "react-dom";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useModal } from "@/hooks/useModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import styles from "./Column.module.css";
+import Modal from "@/components/Modal/Modal";
+import modalStyles from "@/components/Modal/Modal.module.css";
+import { useAutoFocus } from "@/hooks/useAutoFocus";
 import Card from "@/components/Card/Card";
 import type { Task, ColumnStatus } from "@/type/types";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -37,7 +39,7 @@ interface ColumnProps {
 export default function Column({ title, status, tasks = [], onAddCard, onUpdateCard, onRemoveCard }: ColumnProps) {
     const { isOpen, open, close } = useModal();
     const [cardName, setCardName] = useState("");
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useAutoFocus<HTMLInputElement>(isOpen);
 
     // The useDroppable hook registers this entire column container as a valid target for dragged elements.
     // The `isOver` boolean provides styling feedback when a card is actively hovering in its airspace.
@@ -55,13 +57,7 @@ export default function Column({ title, status, tasks = [], onAddCard, onUpdateC
 
     useEscapeKey(close, isOpen);
 
-    // Automatically focuses the text input cursor inside the modal when the user opens "New Card".
-    // A 50ms delay is artificially injected because createPortal takes a split-second to mount the DOM node natively.
-    useEffect(() => {
-        if (isOpen) {
-            setTimeout(() => inputRef.current?.focus(), 50);
-        }
-    }, [isOpen]);
+
 
     /**
      * Triggered when the user submits the "New Card" form.
@@ -77,43 +73,40 @@ export default function Column({ title, status, tasks = [], onAddCard, onUpdateC
         close();
     }
 
-    const modal =
-        isOpen &&
-        createPortal(
-            <div className={styles.backdrop} onClick={close}>
-                <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-                    <div className={styles.modal_header}>
-                        <h2 className={styles.modal_title}>New Card</h2>
-                        <button className={styles.modal_close} onClick={close}>×</button>
-                    </div>
-                    <hr className={styles.modal_hr} />
-                    <form
-                        className={styles.modal_body}
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            handleSubmit();
-                        }}
-                    >
-                        <label className={styles.modal_label}>Card Name</label>
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            className={styles.modal_input}
-                            placeholder="Enter card name..."
-                            value={cardName}
-                            onChange={(e) => setCardName(e.target.value)}
-                        />
-                        <button type="submit" className={styles.modal_submit}>
-                            Add Card
-                        </button>
-                    </form>
-                </div>
-            </div>,
-            document.body
-        );
+    const modal = (
+        <Modal isOpen={isOpen} onClose={close} title="New Card">
+            {/* Body: Form handler for submitting a new card to this specific column */}
+            <form
+                className={modalStyles.modal_body}
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSubmit();
+                }}
+            >
+                <label className={modalStyles.modal_label}>Card Name</label>
+                <input
+                    ref={inputRef}
+                    type="text"
+                    className={modalStyles.modal_input}
+                    placeholder="Enter card name..."
+                    value={cardName}
+                    onChange={(e) => setCardName(e.target.value)}
+                />
+                <button type="submit" className={modalStyles.modal_submit}>
+                    Add Card
+                </button>
+            </form>
+        </Modal>
+    );
 
     return (
         <>
+            {/* 
+              Physical Drop Zone:
+              - `ref` designates this div container as a valid drop target for dnd-kit.
+              - `data-status` attaches a native DOM payload used for CSS or external tracking.
+              - `style` provides immediate highlight feedback when a dragged card hovers over its airspace.
+            */}
             <div 
                 ref={setNodeRef}
                 className={styles.column} 
@@ -123,8 +116,8 @@ export default function Column({ title, status, tasks = [], onAddCard, onUpdateC
                 <h1>{title}</h1>
 
                 {/* 
-                  SortableContext manages the ordered list of items within this specific column. 
-                  It correlates the array of task IDs to their rendered Card components.
+                  SortableContext manages the strict order of tasks belonging to this column. 
+                  It correlates the array of task IDs directly to their physical DOM rendering.
                 */}
                 <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
                     {tasks.map((task) => (
@@ -139,8 +132,11 @@ export default function Column({ title, status, tasks = [], onAddCard, onUpdateC
 
                 <hr style={{ border: '1px solid #000000' }} />
 
+                {/* Action button to open the "New Card" modal specifically scoped to this column's status variant */}
                 <button className={styles.add_card} onClick={open}>+</button>
             </div>
+            
+            {/* Renders the "New Card" popup overlay */}
             {modal}
         </>
     );

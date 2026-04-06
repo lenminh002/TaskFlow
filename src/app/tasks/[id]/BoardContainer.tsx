@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef } from "react";
+import React, { useRef, useCallback } from "react";
 
 // BoardContainer wrap the components we want to apply horizontal scroll to
 export default function BoardContainer({
@@ -13,7 +13,7 @@ export default function BoardContainer({
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // 2. This function listens for when the mouse wheel is scrolled inside this element
-    const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const onWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
         // Only run if the container actually exists on the screen
         if (!scrollRef.current) return;
 
@@ -56,7 +56,7 @@ export default function BoardContainer({
             // Take the vertical scroll amount and apply it to the horizontal scroll position (scrollLeft) instead!
             scrollRef.current.scrollLeft += e.deltaY;
         }
-    };
+    }, []);
 
     // 3. Render a div that attaches our `scrollRef` and our mouse wheel listener `onWheel`
     return (

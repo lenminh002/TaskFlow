@@ -34,7 +34,7 @@ export default function EditableTitle({ boardId, initialName }: { boardId: strin
             setName(initialName); // Revert to the original name if left blank or unchanged
             return;
         }
-        
+
         const success = await updateBoardName(boardId, trimmed);
         if (!success) {
             setName(initialName); // Rollback locally if the network payload fails

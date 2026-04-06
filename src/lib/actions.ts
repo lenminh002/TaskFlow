@@ -7,6 +7,14 @@
 import { supabase } from './supabase'
 import type { Task, ColumnStatus, Board } from '@/type/types'
 
+// ─── Shared Utilities ───────────────────────────────────────────────
+
+const VALID_STATUSES: ColumnStatus[] = ["todo", "in_progress", "in_review", "done"];
+
+function validateStatus(status: any): ColumnStatus {
+    return VALID_STATUSES.includes(status) ? (status as ColumnStatus) : "todo";
+}
+
 // ─── Board actions (navbar items) ───────────────────────────────────
 
 /**
@@ -20,7 +28,7 @@ export async function fetchBoards(): Promise<Board[]> {
 
     if (error) {
         console.error('Error fetching boards:', error.message)
-        return []
+        throw new Error(`Failed to fetch boards: ${error.message}`)
     }
 
     return (data ?? []).map((row) => ({
@@ -42,7 +50,7 @@ export async function addBoard(board: { id: string; name: string }): Promise<Boa
 
     if (error) {
         console.error('Error adding board:', error.message)
-        return null
+        throw new Error(`Failed to add board: ${error.message}`)
     }
 
     return {
@@ -66,7 +74,7 @@ export async function fetchCards(boardId: string): Promise<Task[]> {
 
     if (error) {
         console.error('Error fetching cards:', error.message)
-        return []
+        throw new Error(`Failed to fetch cards: ${error.message}`)
     }
 
     return (data ?? []).map((row) => ({
@@ -74,7 +82,7 @@ export async function fetchCards(boardId: string): Promise<Task[]> {
         boardId: row.board_id,
         name: row.name,
         description: row.description ?? undefined,
-        status: row.status as ColumnStatus,
+        status: validateStatus(row.status),
         priority: row.priority ?? undefined,
         createdAt: row.created_at,
         dueDate: row.due_date ?? undefined,
@@ -99,7 +107,7 @@ export async function addCard(card: { id: string; name: string; status: ColumnSt
 
     if (error) {
         console.error('Error adding card:', error.message)
-        return null
+        throw new Error(`Failed to add card: ${error.message}`)
     }
 
     return {
@@ -107,7 +115,7 @@ export async function addCard(card: { id: string; name: string; status: ColumnSt
         boardId: data.board_id,
         name: data.name,
         description: data.description ?? undefined,
-        status: data.status as ColumnStatus,
+        status: validateStatus(data.status),
     }
 }
 
@@ -122,7 +130,7 @@ export async function removeCard(id: string): Promise<boolean> {
 
     if (error) {
         console.error('Error removing card:', error.message)
-        return false
+        throw new Error(`Failed to remove card: ${error.message}`)
     }
 
     return true
@@ -139,7 +147,7 @@ export async function updateCardStatus(id: string, status: ColumnStatus): Promis
 
     if (error) {
         console.error('Error updating card status:', error.message)
-        return false
+        throw new Error(`Failed to update card status: ${error.message}`)
     }
 
     return true
@@ -164,7 +172,7 @@ export async function updateTaskPositions(updates: { id: string, position: numbe
     const failed = results.find(r => r.error)
     if (failed?.error) {
         console.error('Error updating task positions:', failed.error.message)
-        return false
+        throw new Error(`Failed to update task positions: ${failed.error.message}`)
     }
     return true
 }
@@ -180,7 +188,7 @@ export async function updateCardDetails(id: string, updates: Partial<{ descripti
 
     if (error) {
         console.error('Error updating card details:', error.message)
-        return false
+        throw new Error(`Failed to update card details: ${error.message}`)
     }
 
     return true
@@ -197,7 +205,7 @@ export async function updateBoardName(id: string, name: string): Promise<boolean
 
     if (error) {
         console.error('Error updating board name:', error.message)
-        return false
+        throw new Error(`Failed to update board name: ${error.message}`)
     }
 
     return true
@@ -214,7 +222,7 @@ export async function deleteBoard(id: string): Promise<boolean> {
 
     if (error) {
         console.error('Error deleting board:', error.message)
-        return false
+        throw new Error(`Failed to delete board: ${error.message}`)
     }
 
     return true
