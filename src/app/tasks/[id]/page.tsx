@@ -17,12 +17,24 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
 
     // Query Supabase directly to extract the specific board name for the page header
     const supabase = await createClient();
-    const { data: board } = await supabase
+    const { data: board, error } = await supabase
         .from('boards')
         .select('name')
         .eq('id', id)
-        .single()
-    const boardName = board ? board.name : `Board: ${id}`;
+        .single();
+
+    if (error || !board) {
+        return (
+            <div className={styles.page} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                <div style={{ textAlign: "center", margin: "auto" }}>
+                    <h2>You don't have permission to view this board</h2>
+                    <p style={{ marginTop: '0.5rem', color: '#666' }}>Please check the URL or ensure you created this board.</p>
+                </div>
+            </div>
+        );
+    }
+
+    const boardName = board.name;
 
     // Bulk fetch all tasks filtered by the current board ID locally to hydrate the client
     const cards = await fetchCards(id);
