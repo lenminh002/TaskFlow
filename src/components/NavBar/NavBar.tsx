@@ -77,9 +77,11 @@ export default function NavBar() {
         const name = boardName.trim()
         if (!name) return
 
-        const newBoard = {
+        const newBoard: Board = {
             id: crypto.randomUUID(),
             name: name,
+            userId: currentUserId,
+            createdAt: new Date().toISOString()
         }
 
         close()
