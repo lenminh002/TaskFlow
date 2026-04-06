@@ -83,5 +83,6 @@ export interface Comment {
   username: string;   
   content: string;
   createdAt: string;
+  isSystemActivity?: boolean;
 }
 

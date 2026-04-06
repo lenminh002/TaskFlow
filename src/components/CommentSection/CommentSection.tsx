@@ -70,16 +70,27 @@ export default function CommentSection({ taskId }: CommentSectionProps) {
                 ) : (
                     comments.map(comment => {
                         const isSent = comment.userId === currentUserId;
+
+                        if (comment.isSystemActivity) {
+                            return (
+                                <div key={comment.id} className={styles.system_activity} title={comment.id}>
+                                    <strong style={{ color: '#000' }}>{comment.username === 'Unknown User' ? 'System' : comment.username}</strong>
+                                    {" "}{comment.content}{" "}
+                                    <span className={styles.system_time}>• {formatDate(comment.createdAt)}</span>
+                                </div>
+                            );
+                        }
+
                         return (
                             <div key={comment.id} className={isSent ? styles.sent_message : styles.received_message}>
                                 <div className={isSent ? styles.meta_sent : styles.meta_received}>
                                     <span>
-                                        {isSent ? "You" : comment.username} 
+                                        {isSent ? "You" : comment.username}
                                         {" "}
                                         <span className={styles.meta_time}>• {formatDate(comment.createdAt)}</span>
                                     </span>
                                     {isSent && (
-                                        <button 
+                                        <button
                                             className={styles.delete_button}
                                             onClick={() => handleDelete(comment.id)}
                                             title="Delete your comment"
@@ -104,8 +115,8 @@ export default function CommentSection({ taskId }: CommentSectionProps) {
                     className={styles.input}
                     disabled={isSubmitting || isLoading}
                 />
-                <button 
-                    type="submit" 
+                <button
+                    type="submit"
                     className={styles.submit}
                     disabled={isSubmitting || isLoading || !newComment.trim()}
                     aria-label="Send Message"

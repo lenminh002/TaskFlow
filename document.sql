@@ -108,6 +108,7 @@ CREATE TABLE comments (
   task_id uuid NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES users(id) ON DELETE CASCADE,
   content text NOT NULL,
+  is_system_activity boolean DEFAULT false,
   created_at timestamptz DEFAULT now()
 );
 
@@ -133,3 +134,99 @@ CREATE POLICY "Comment insert" ON comments FOR INSERT WITH CHECK (
 
 -- Delete: only the comment author can delete their own comment
 CREATE POLICY "Comment delete" ON comments FOR DELETE USING (auth.uid() = user_id);
+
+-- ========================================
+-- Activity Log Triggers (Auto-Timeline)
+-- ========================================
+
+-- Ensure the system column exists if upgrading from an older schema version
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS is_system_activity boolean DEFAULT false;
+
+-- Trigger 1: Log status changes natively without frontend intervention
+CREATE OR REPLACE FUNCTION log_task_activity() RETURNS TRIGGER AS $$
+BEGIN
+  -- Automatically capture status updates (e.g., from Drag & Drop)
+  IF OLD.status IS DISTINCT FROM NEW.status THEN
+    INSERT INTO comments (task_id, user_id, content, is_system_activity)
+    VALUES (
+      NEW.id, 
+      COALESCE(auth.uid(), NEW.user_id), 
+      'Moved from ' || OLD.status || ' to ' || NEW.status, 
+      true
+    );
+  END IF;
+  
+  -- Automatically capture assignee changes
+  IF OLD.assignee_id IS DISTINCT FROM NEW.assignee_id THEN
+    IF NEW.assignee_id IS NULL THEN
+      INSERT INTO comments (task_id, user_id, content, is_system_activity)
+      VALUES (NEW.id, COALESCE(auth.uid(), NEW.user_id), 'Removed assignee mapping', true);
+    ELSE
+      INSERT INTO comments (task_id, user_id, content, is_system_activity)
+      VALUES (NEW.id, COALESCE(auth.uid(), NEW.user_id), 'Assigned task to a new member', true);
+    END IF;
+  END IF;
+
+  -- Title changes
+  IF OLD.name IS DISTINCT FROM NEW.name THEN
+    INSERT INTO comments (task_id, user_id, content, is_system_activity)
+    VALUES (NEW.id, COALESCE(auth.uid(), NEW.user_id), 'Changed the title from "' || OLD.name || '" to "' || NEW.name || '"', true);
+  END IF;
+
+  -- Description changes
+  IF OLD.description IS DISTINCT FROM NEW.description THEN
+    IF NEW.description IS NULL OR trim(NEW.description) = '' THEN
+      INSERT INTO comments (task_id, user_id, content, is_system_activity)
+      VALUES (NEW.id, COALESCE(auth.uid(), NEW.user_id), 'Removed the description', true);
+    ELSE
+      INSERT INTO comments (task_id, user_id, content, is_system_activity)
+      VALUES (NEW.id, COALESCE(auth.uid(), NEW.user_id), 'Updated the description', true);
+    END IF;
+  END IF;
+
+  -- Priority changes
+  IF OLD.priority IS DISTINCT FROM NEW.priority THEN
+    INSERT INTO comments (task_id, user_id, content, is_system_activity)
+    VALUES (NEW.id, COALESCE(auth.uid(), NEW.user_id), 'Changed priority to ' || COALESCE(NEW.priority, 'None'), true);
+  END IF;
+
+  -- Due Date changes
+  IF OLD.due_date IS DISTINCT FROM NEW.due_date THEN
+    IF NEW.due_date IS NULL THEN
+      INSERT INTO comments (task_id, user_id, content, is_system_activity)
+      VALUES (NEW.id, COALESCE(auth.uid(), NEW.user_id), 'Removed the due date', true);
+    ELSE
+      INSERT INTO comments (task_id, user_id, content, is_system_activity)
+      VALUES (NEW.id, COALESCE(auth.uid(), NEW.user_id), 'Changed due date to ' || TO_CHAR(NEW.due_date, 'Mon DD, YYYY'), true);
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS task_activity_trigger ON tasks;
+CREATE TRIGGER task_activity_trigger
+AFTER UPDATE ON tasks
+FOR EACH ROW
+EXECUTE FUNCTION log_task_activity();
+
+-- Trigger 2: Log task creation on inception
+CREATE OR REPLACE FUNCTION log_task_creation() RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO comments (task_id, user_id, content, is_system_activity)
+  VALUES (
+    NEW.id, 
+    COALESCE(auth.uid(), NEW.user_id), 
+    'Created this task', 
+    true
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS task_creation_trigger ON tasks;
+CREATE TRIGGER task_creation_trigger
+AFTER INSERT ON tasks
+FOR EACH ROW
+EXECUTE FUNCTION log_task_creation();

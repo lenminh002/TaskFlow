@@ -385,6 +385,7 @@ export async function fetchComments(taskId: string): Promise<Comment[]> {
             task_id,
             user_id,
             content,
+            is_system_activity,
             created_at,
             users ( username )
         `)
@@ -403,6 +404,7 @@ export async function fetchComments(taskId: string): Promise<Comment[]> {
         username: row.users?.username || 'Unknown User',
         content: row.content,
         createdAt: row.created_at,
+        isSystemActivity: row.is_system_activity,
     }));
 }
 
