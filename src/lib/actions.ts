@@ -59,7 +59,7 @@ interface TaskRow {
 export async function fetchBoards(): Promise<{ boards: Board[], currentUserId: string }> {
     const supabase = await createClient()
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     const { data, error } = await supabase
         .from('boards')
         .select('*')
@@ -276,7 +276,7 @@ export async function leaveBoard(id: string): Promise<boolean> {
         .update({ assignee_id: null })
         .eq('board_id', id)
         .eq('assignee_id', session.user.id);
-    
+
     if (tasksError) handleError('cleanly unassign tasks during board exit', tasksError);
 
     const { error, count } = await supabase
@@ -331,9 +331,9 @@ export async function addBoardMember(boardId: string, memberId: string): Promise
         .insert({ board_id: boardId, user_id: memberId })
 
     if (error) handleError('add board member', error);
-    
+
     revalidatePath('/', 'layout');
-    
+
     return true
 }
 
@@ -347,9 +347,9 @@ export async function addBoardMember(boardId: string, memberId: string): Promise
  * @param boardId - Board UUID.
  * @returns Array of User profiles (id, username).
  */
-export async function fetchBoardMembersFull(boardId: string): Promise<{id: string, username: string}[]> {
+export async function fetchBoardMembersFull(boardId: string): Promise<{ id: string, username: string }[]> {
     const supabase = await createClient();
-    
+
     // Fallback direct profiling bypasses complex Supabase graph relation limitations
     const { data: board } = await supabase.from('boards').select('user_id').eq('id', boardId).single();
     const { data: members } = await supabase.from('board_members').select('user_id').eq('board_id', boardId);
@@ -376,7 +376,7 @@ export async function fetchBoardMembersFull(boardId: string): Promise<{id: strin
  */
 export async function fetchComments(taskId: string): Promise<Comment[]> {
     const supabase = await createClient();
-    
+
     // Join with users table to get the raw username of the commenter
     const { data, error } = await supabase
         .from('comments')
@@ -414,7 +414,7 @@ export async function fetchComments(taskId: string): Promise<Comment[]> {
 export async function addComment(taskId: string, content: string): Promise<Comment | null> {
     const supabase = await createClient();
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session?.user?.id) throw new Error("No active session");
 
     const { data, error } = await supabase

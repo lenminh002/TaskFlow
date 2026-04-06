@@ -48,7 +48,7 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
 
     const boardName = board.name;
     let creatorUsername = "Unknown";
-    
+
     // Attempt lookup natively for UX author mapping
     if (board.user_id) {
         const { data: profile, error } = await supabase
@@ -56,7 +56,7 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
             .select('username')
             .eq('id', board.user_id)
             .single();
-        
+
         if (error) {
             console.warn(`User profile not found for board owner: ${board.user_id}`, error);
         } else if (profile) {
@@ -66,7 +66,7 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
 
     // Bulk fetch all tasks filtered by the current board ID locally to hydrate the client
     const cards = await fetchCards(id);
-    
+
     // Fetch the unified roster of everyone allowed to collaborate (for assignment dropdown mapping)
     const teamMembers = await fetchBoardMembersFull(id);
 
@@ -75,7 +75,7 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
                     <EditableTitle boardId={id} initialName={boardName} />
-                    <span 
+                    <span
                         className={styles.creator_wrapper}
                         style={{ fontSize: '0.85rem', fontStyle: 'italic', color: '#888' }}
                     >

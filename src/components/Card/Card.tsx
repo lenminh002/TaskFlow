@@ -134,27 +134,27 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
                     <div className={modalStyles.modal_field}>
                         <span className={modalStyles.modal_label}>Status</span>
                         <select className={modalStyles.modal_select} value={localStatus} onChange={(e) => setLocalStatus(e.target.value as ColumnStatus)}>
-                        {STATUS_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className={modalStyles.modal_field}>
-                    {/* Delegation Input Box: mapped natively via props combining active names with their database UUID relationships */}
-                    <span className={modalStyles.modal_label}>Assign To</span>
-                    <select className={modalStyles.modal_select} value={localAssigneeId} onChange={(e) => setLocalAssigneeId(e.target.value)}>
-                        <option value="">Unassigned</option>
-                        {teamMembers.map(member => (
-                            <option key={member.id} value={member.id}>
-                                {member.username} ({member.id})
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div className={modalStyles.modal_field}>
-                    <span className={modalStyles.modal_label}>Due Date</span>
-                    <input type="date" className={modalStyles.modal_input} value={localDueDate} onChange={(e) => setLocalDueDate(e.target.value)} />
-                </div>
+                            {STATUS_OPTIONS.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className={modalStyles.modal_field}>
+                        {/* Delegation Input Box: mapped natively via props combining active names with their database UUID relationships */}
+                        <span className={modalStyles.modal_label}>Assign To</span>
+                        <select className={modalStyles.modal_select} value={localAssigneeId} onChange={(e) => setLocalAssigneeId(e.target.value)}>
+                            <option value="">Unassigned</option>
+                            {teamMembers.map(member => (
+                                <option key={member.id} value={member.id}>
+                                    {member.username} ({member.id})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className={modalStyles.modal_field}>
+                        <span className={modalStyles.modal_label}>Due Date</span>
+                        <input type="date" className={modalStyles.modal_input} value={localDueDate} onChange={(e) => setLocalDueDate(e.target.value)} />
+                    </div>
                     <div className={modalStyles.modal_field}>
                         <span className={modalStyles.modal_label}>Created</span>
                         <p>{formatDate(task?.createdAt) || "—"}</p>
