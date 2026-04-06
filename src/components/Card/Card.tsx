@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useModal } from "@/hooks/useModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import type { Task } from "@/type/types";
+import type { Task, ColumnStatus } from "@/type/types";
 import styles from "./Card.module.css";
 import Modal from "@/components/Modal/Modal";
 import modalStyles from "@/components/Modal/Modal.module.css";
@@ -26,6 +26,7 @@ import { CSS } from "@dnd-kit/utilities";
  */
 interface CardProps {
     task?: Task;
+    teamMembers?: { id: string, username: string }[];
     onClick?: () => void;
     onUpdateCard?: (id: string, updates: Partial<Task>) => void;
     onRemoveCard?: (id: string) => void;
@@ -75,12 +76,14 @@ function parseSafeDate(dateStr?: Date | string): string {
     }
 }
 
-export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: CardProps) {
+export default function Card({ task, teamMembers = [], onClick, onUpdateCard, onRemoveCard }: CardProps) {
     const { isOpen, open, close } = useModal();
     const title = task?.name ?? "Task";
 
     const [localDesc, setLocalDesc] = useState(task?.description || "");
     const [localPriority, setLocalPriority] = useState(task?.priority || "");
+    const [localStatus, setLocalStatus] = useState<ColumnStatus>(task?.status || "todo");
+    const [localAssigneeId, setLocalAssigneeId] = useState(task?.assigneeId || "");
     const [localDueDate, setLocalDueDate] = useState(parseSafeDate(task?.dueDate));
 
     // Connects the component to the dnd-kit Sortable ecosystem.
@@ -100,13 +103,17 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
         opacity: isDragging ? 0.4 : 1,
     };
 
-    // Modal Lifecycle Hook: Whenever the user opens the modal or the parent `task` prop changes,
-    // this hook forcefully overrides the temporary modal inputs with the most up-to-date accurate database data.
-    // This solves "stale state" issues if you open the modal quickly after another computer updated the same card.
+    /**
+     * Modal Lifecycle Hook: Whenever the user opens the modal or the parent `task` prop changes,
+     * this hook forcefully overrides the temporary modal inputs with the most up-to-date accurate database data.
+     * This solves "stale state" issues if you open the modal quickly after another computer updated the same card.
+     */
     useEffect(() => {
         if (isOpen) {
             setLocalDesc(task?.description || "");
             setLocalPriority(task?.priority || "");
+            setLocalStatus(task?.status || "todo");
+            setLocalAssigneeId(task?.assigneeId || ""); // Tracks UUID delegates structurally against `board_members`
             setLocalDueDate(parseSafeDate(task?.dueDate));
         }
     }, [isOpen, task]);
@@ -133,6 +140,8 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
             onUpdateCard(task.id, {
                 description: localDesc,
                 priority: localPriority ? (localPriority as "low" | "medium" | "high" | "urgent") : undefined,
+                status: localStatus,
+                assigneeId: localAssigneeId || undefined,
                 dueDate: localDueDate ? new Date(localDueDate) : undefined
             });
         }
@@ -159,7 +168,24 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
                 </div>
                 <div className={modalStyles.modal_field}>
                     <span className={modalStyles.modal_label}>Status</span>
-                    <p className={styles.status_badge}>{formatStatusLabel(task?.status)}</p>
+                    <select className={modalStyles.modal_select} value={localStatus} onChange={(e) => setLocalStatus(e.target.value as ColumnStatus)}>
+                        <option value="todo">To Do</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="in_review">In Review</option>
+                        <option value="done">Done</option>
+                    </select>
+                </div>
+                <div className={modalStyles.modal_field}>
+                    {/* Delegation Input Box: mapped natively via props combining active names with their database UUID relationships */}
+                    <span className={modalStyles.modal_label}>Assign To</span>
+                    <select className={modalStyles.modal_select} value={localAssigneeId} onChange={(e) => setLocalAssigneeId(e.target.value)}>
+                        <option value="">Unassigned</option>
+                        {teamMembers.map(member => (
+                            <option key={member.id} value={member.id}>
+                                {member.username} ({member.id})
+                            </option>
+                        ))}
+                    </select>
                 </div>
                 <div className={modalStyles.modal_field}>
                     <span className={modalStyles.modal_label}>Due Date</span>
@@ -216,7 +242,7 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
                 </div>
                 <br />
                 <hr />
-                
+
                 {/* Content Area & Metadata Bubbles */}
                 <div className={styles.card_content}>
                     {task?.description
@@ -224,6 +250,8 @@ export default function Card({ task, onClick, onUpdateCard, onRemoveCard }: Card
                         : <p className={styles.card_description}>No description</p>
                     }
                     <div className={styles.card_meta}>
+                        {task?.assigneeName && <span className={styles.card_tag}>👤 {task.assigneeName}</span>}
+                        {task?.assigneeId && !task.assigneeName && <span className={styles.card_tag}>👤 Assigned</span>}
                         {task?.priority && <span className={styles.card_tag}>{priorityLabel(task.priority)}</span>}
                         {task?.dueDate && <span className={styles.card_tag}>📅 Due: {formatDate(task.dueDate)}</span>}
                     </div>

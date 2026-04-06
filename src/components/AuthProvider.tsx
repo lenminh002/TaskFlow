@@ -8,13 +8,17 @@
 
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import WelcomeModal from "./WelcomeModal";
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const hasInitialized = useRef(false);
+    
+    const [needsUsername, setNeedsUsername] = useState(false);
+    const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
         // Prevent React strict mode double-firing from doing 2 back-to-back signins
@@ -24,23 +28,37 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         const initAuth = async () => {
             const supabase = createClient();
             
-            // Check if user already has an active guest cookie session
-            const { data } = await supabase.auth.getSession();
+            // Extract active JWT cookie session
+            let currentSession = (await supabase.auth.getSession()).data.session;
             
-            if (!data.session) {
+            if (!currentSession) {
                 console.log("No active session detected. Spawning new Anonymous Guest Profile...");
-                
-                // Trigger anonymous login which mints a JWT and stamps it seamlessly into the browser cookies
                 const { error, data: authData } = await supabase.auth.signInAnonymously();
                 
-                if (error) {
+                if (error || !authData.session) {
                     console.error("Anonymous authentication failed to initialize:", error);
-                } else if (authData.session) {
-                    console.log("Guest profile bound successfully! Refreshing Server Components...");
-                    
-                    // Force the Next.js Server Components to re-render.
-                    // During this re-render, the new guest cookie is passed to `server.ts`,
-                    // granting `actions.ts` secure backend authorization via Row Level Security (RLS) policies.
+                    return;
+                }
+                
+                currentSession = authData.session;
+            }
+            
+            if (currentSession) {
+                const uid = currentSession.user.id;
+                setUserId(uid);
+                
+                // Read from Public public users table to verify if they went through the Welcome Gate
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('id', uid)
+                    .single();
+
+                if (!profile) {
+                    console.log("No users table row detected. Staging Welcome Interceptor.");
+                    setNeedsUsername(true);
+                } else {
+                    // Existing complete user detected
                     router.refresh();
                 }
             }
@@ -49,6 +67,18 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         initAuth();
     }, [router]);
 
-    // Pass-through wrapper, we do not block rendering!
-    return <>{children}</>;
+    return (
+        <>
+            {children}
+            {needsUsername && userId && (
+                <WelcomeModal 
+                    userId={userId} 
+                    onComplete={() => {
+                        setNeedsUsername(false);
+                        router.refresh(); // Refresh Server Components enforcing safe RLS
+                    }} 
+                />
+            )}
+        </>
+    );
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Column from "@/components/Column/Column";
-import { addCard, removeCard, updateTaskPositions, updateCardDetails } from "@/lib/actions";
+import { addCard, removeCard, updateTaskPositions, updateCardDetails, fetchCards } from "@/lib/actions";
 import type { Task, ColumnStatus } from "@/type/types";
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay, closestCorners, DragStartEvent, DragEndEvent, DragOverEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import Card from "@/components/Card/Card";
+import { createClient } from "@/lib/supabase/client";
 
 /**
  * @file BoardClient.tsx
@@ -24,10 +25,11 @@ const BOARD_COLUMNS: { title: string; status: ColumnStatus }[] = [
 /**
  * @param boardId - The ID of the database board currently being rendered.
  * @param initialTasks - The static list of tasks fetched server-side to hydrate the board.
+ * @param teamMembers - A flattened mapping of Names->UUIDs authorized to edit this board natively.
  * @param className - Optional CSS class for top-level styling injection.
  * @param children - Any optional React nodes to append inside the board view.
  */
-export default function BoardClient({ boardId, initialTasks, className, children }: { boardId: string; initialTasks: Task[]; className?: string; children?: React.ReactNode }) {
+export default function BoardClient({ boardId, initialTasks, teamMembers = [], className, children }: { boardId: string; initialTasks: Task[]; teamMembers?: { id: string, username: string }[]; className?: string; children?: React.ReactNode }) {
     // During initial component mount, we forcefully re-sort the prop tasks fetched from the server.
     // This ensures that even if Supabase returned rows asynchronously out-of-order, 
     // the local sequence flawlessly honors the floating-point `position` column.
@@ -38,6 +40,64 @@ export default function BoardClient({ boardId, initialTasks, className, children
 
     // `activeTask` specifically tracks whichever piece of DOM the user is currently holding with their mouse/finger.
     const [activeTask, setActiveTask] = useState<Task | null>(null);
+    const isDraggingRef = useRef(false);
+
+    useEffect(() => {
+        isDraggingRef.current = !!activeTask;
+    }, [activeTask]);
+
+    // Rehydration State Sync Hooks
+    // Next.js Route navigation implicitly fires router.refresh() silently which passes down `initialTasks`.
+    // When the server organically hydrates us with fresh data, safely fold the results 
+    // over the local Array Grid exclusively making sure not to destroy an active dragging UX snapshot.
+    useEffect(() => {
+        // Guard: Do not overwrite the DOM grid if the user is currently physically dragging a card!
+        if (!activeTask) {
+            setTasks([...initialTasks].sort((a, b) => (a.position || 0) - (b.position || 0)));
+        }
+    }, [initialTasks, activeTask]);
+
+    /**
+     * Collaborative Supabase Realtime Socket Setup
+     * 
+     * Hooks into the Write-Ahead Log (WAL) listener in Postgres specifically bypassing filtering.
+     * When any transaction mutates the `tasks` pipeline on any board, it fires correctly! 
+     */
+    useEffect(() => {
+        const supabase = createClient();
+        const channel = supabase
+            .channel(`realtime-board-${boardId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'tasks'
+                },
+                async (payload) => {
+                    console.log("⚡ Realtime Sync Fired:", payload.eventType);
+
+                    // ARCHITECTURE FIX: 
+                    // Instead of using `router.refresh()` which Next.js caches aggressively without cache invalidations,
+                    // we directly proxy the backend RPC `fetchCards` action. This perfectly forces a fresh DB lookup
+                    // bypassing all Next.js hydration issues natively.
+                    const freshCards = await fetchCards(boardId);
+
+                    // Cleanly update the screen arrays as long as a user isn't hovering midway in a drag calculation.
+                    if (!isDraggingRef.current) {
+                        const sorted = freshCards.sort((a, b) => (a.position || 0) - (b.position || 0));
+                        setTasks(sorted);
+                    }
+                }
+            )
+            .subscribe((status) => {
+                console.log("Supabase WebSocket:", status);
+            });
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [boardId]);
 
     // Memoize the tasks by column status to prevent repeated O(N) filter sweeps during every single render pass.
     const groupedTasks = useMemo(() => {
@@ -145,6 +205,7 @@ export default function BoardClient({ boardId, initialTasks, className, children
         if (updates.description !== undefined) dbUpdates.description = updates.description;
         if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
         if (updates.status !== undefined) dbUpdates.status = updates.status;
+        if (updates.assigneeId !== undefined) dbUpdates.assignee_id = updates.assigneeId;
         if (updates.dueDate !== undefined) {
             dbUpdates.due_date = updates.dueDate instanceof Date
                 ? updates.dueDate.toISOString()
@@ -295,6 +356,7 @@ export default function BoardClient({ boardId, initialTasks, className, children
                             title={title}
                             status={status}
                             tasks={columnTasks}
+                            teamMembers={teamMembers}
                             onAddCard={(name) => addTask(status, name)}
                             onUpdateCard={(id, updates) => updateTask(id, updates)}
                             onRemoveCard={removeTask}
@@ -307,7 +369,7 @@ export default function BoardClient({ boardId, initialTasks, className, children
             {typeof document !== "undefined" && (
                 <DragOverlay>
                     {activeTask ? (
-                        <Card task={activeTask} />
+                        <Card task={activeTask} teamMembers={teamMembers} />
                     ) : null}
                 </DragOverlay>
             )}

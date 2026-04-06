@@ -31,12 +31,13 @@ interface ColumnProps {
     title: string;
     status: ColumnStatus;
     tasks?: Task[];
+    teamMembers?: {id: string, username: string}[];
     onAddCard?: (name: string) => void;
     onUpdateCard?: (id: string, updates: Partial<Task>) => void;
     onRemoveCard?: (id: string) => void;
 }
 
-export default function Column({ title, status, tasks = [], onAddCard, onUpdateCard, onRemoveCard }: ColumnProps) {
+export default function Column({ title, status, tasks = [], teamMembers = [], onAddCard, onUpdateCard, onRemoveCard }: ColumnProps) {
     const { isOpen, open, close } = useModal();
     const [cardName, setCardName] = useState("");
     const inputRef = useAutoFocus<HTMLInputElement>(isOpen);
@@ -124,6 +125,7 @@ export default function Column({ title, status, tasks = [], onAddCard, onUpdateC
                         <Card
                             key={task.id}
                             task={task}
+                            teamMembers={teamMembers}
                             onUpdateCard={onUpdateCard}
                             onRemoveCard={onRemoveCard}
                         />

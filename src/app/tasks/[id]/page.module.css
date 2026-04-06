@@ -96,3 +96,33 @@
     border-color: #747474;
     color: #747474;
 }
+
+.creator_wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.creator_tooltip {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #222;
+    color: #fff;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 50;
+    margin-top: 0.4rem;
+    font-family: monospace;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+}
+
+.creator_wrapper:hover .creator_tooltip {
+    visibility: visible;
+    opacity: 1;
+}

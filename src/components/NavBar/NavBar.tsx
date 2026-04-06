@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from 'react'
 import { useModal } from "@/hooks/useModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { fetchBoards, addBoard, deleteBoard } from "@/lib/actions";
+import { fetchBoards, addBoard, deleteBoard, leaveBoard } from "@/lib/actions";
 import Modal from "@/components/Modal/Modal";
 import modalStyles from "@/components/Modal/Modal.module.css";
 import { useAutoFocus } from "@/hooks/useAutoFocus";
@@ -24,9 +24,14 @@ import type { Board } from "@/type/types";
 export default function NavBar() {
     const router = useRouter()
     const pathname = usePathname()
-    // State for data fetching and UI components
+    // Core UI State Variables
     const [loading, setLoading] = useState(true)
     const [boards, setBoards] = useState<Board[]>([])
+
+    // Collaboration Role Guards: 
+    // We isolate the active user locally to determine whether they're 
+    // allowed to Delete the board permanently (Owner) vs. merely Leave it (Member).
+    const [currentUserId, setCurrentUserId] = useState<string>("")
     const { isOpen, open, close } = useModal()
     const [boardName, setBoardName] = useState("")
     const [searchQuery, setSearchQuery] = useState("")
@@ -38,7 +43,10 @@ export default function NavBar() {
     // Fetch boards from Supabase on initial mount
     useEffect(() => {
         fetchBoards()
-            .then(setBoards)
+            .then((res) => {
+                setBoards(res.boards);
+                setCurrentUserId(res.currentUserId);
+            })
             .catch((e) => console.error("Could not load boards:", e))
             .finally(() => setLoading(false))
     }, [])
@@ -102,7 +110,28 @@ export default function NavBar() {
         } catch (e) {
             console.error("Failed to delete board:", e);
             alert('Failed to delete board.');
-            fetchBoards().then(setBoards).catch(console.error);
+            fetchBoards().then(res => { setBoards(res.boards); setCurrentUserId(res.currentUserId); }).catch(console.error);
+        }
+    }
+
+    // Safely detach from a board without destroying the owner's master entity
+    async function handleLeaveBoard(id: string, name: string) {
+        if (typeof window === "undefined" || !window.confirm(`Are you sure you want to leave the board "${name}"? You will lose access.`)) {
+            return;
+        }
+
+        // Update UI optimistically
+        setBoards((prev) => prev.filter((b) => b.id !== id))
+        if (pathname === `/tasks/${id}`) {
+            router.push('/')
+        }
+
+        try {
+            await leaveBoard(id);
+        } catch (e) {
+            console.error("Failed to leave board:", e);
+            alert('Failed to leave board.');
+            fetchBoards().then(res => { setBoards(res.boards); setCurrentUserId(res.currentUserId); }).catch(console.error);
         }
     }
 
@@ -172,23 +201,35 @@ export default function NavBar() {
                             <div className={styles.skeleton} />
                             <div className={styles.skeleton} />
                         </>
-                    ) : filteredBoards.map((board) => (
-                        <div key={board.id} className={styles.nav_item_container}>
-                            <Link
-                                href={`/tasks/${board.id}`}
-                                className={`${styles.nav_item} ${pathname === `/tasks/${board.id}` ? styles.nav_item_active : ''}`}
-                            >
-                                {board.name}
-                            </Link>
-                            <button
-                                className={styles.nav_item_delete}
-                                onClick={() => handleDeleteBoard(board.id, board.name)}
-                                title="Delete board"
-                            >
-                                ×
-                            </button>
-                        </div>
-                    ))}
+                    ) : filteredBoards.map((board) => {
+                        // Role Guard Check: Natively determine owner logic for each board iterably.
+                        // Owners have full destruct rights. External members can only "Leave" safely.
+                        const isOwner = board.userId === currentUserId;
+                        
+                        return (
+                            <div key={board.id} className={styles.nav_item_container}>
+                                <Link
+                                    href={`/tasks/${board.id}`}
+                                    className={`${styles.nav_item} ${pathname === `/tasks/${board.id}` ? styles.nav_item_active : ''}`}
+                                >
+                                    {board.name}
+                                </Link>
+                                <button
+                                    className={styles.nav_item_delete}
+                                    style={{ color: isOwner ? '' : '#d9534f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    onClick={() => isOwner ? handleDeleteBoard(board.id, board.name) : handleLeaveBoard(board.id, board.name)}
+                                    title={isOwner ? "Delete board" : "Leave board"}
+                                >
+                                    {isOwner ? '×' : (
+                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                             <path d="M16 13v-2H7V8l-5 4 5 4v-3z"></path>
+                                             <path d="M20 3h-9c-1.103 0-2 .897-2 2v4h2V5h9v14h-9v-4H9v4c0 1.103.897 2 2 2h9c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2z"></path>
+                                         </svg>
+                                    )}
+                                </button>
+                            </div>
+                        )
+                    })}
 
                     <br />
                     <hr style={{ border: '1px solid #000000' }} />

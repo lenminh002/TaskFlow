@@ -15,6 +15,14 @@ export type ColumnStatus = "todo" | "in_progress" | "in_review" | "done";
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
 /**
+ * Core User entity tracking collaborators on the platform.
+ */
+export interface User {
+  id: string;
+  username: string;
+}
+
+/**
  * Core Task entity representing a single card in a Kanban board.
  */
 export interface Task {
@@ -38,6 +46,10 @@ export interface Task {
   dueDate?: Date | string;
   /** Positioning order index for drag and drop within columns */
   position?: number;
+  /** UUID of the User delegated to this task */
+  assigneeId?: string;
+  /** Populated username linked to the assigneeId */
+  assigneeName?: string;
 }
 
 /**
@@ -58,5 +70,6 @@ export interface Board {
   name: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  userId?: string;
 }
 
