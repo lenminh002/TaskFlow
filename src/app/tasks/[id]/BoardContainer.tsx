@@ -1,3 +1,10 @@
+/**
+ * @file BoardContainer.tsx
+ * @description specialized UI container enabling horizontal scrolling for the Kanban board.
+ * @details Intercepts vertical mouse wheel events to perform horizontal scrolling, 
+ * while intelligently allowing nested vertical scrolling for individual columns or card content.
+ */
+
 "use client";
 import React, { useRef, useCallback } from "react";
 

@@ -10,6 +10,10 @@ import { useRouter } from "next/navigation";
  * @description Button and Modal encapsulating logic for dynamically attaching new external User UUIDs to the current Board's Row Level Security context securely.
  */
 
+/**
+ * Button component that spawns a modal for adding new members to a board.
+ * @param boardId - The UUID of the board to which the new member will be added.
+ */
 export default function AddMemberButton({ boardId }: { boardId: string }) {
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);

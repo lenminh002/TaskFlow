@@ -36,7 +36,7 @@ interface CardProps {
 export default function Card({ task, teamMembers = [], onClick, onUpdateCard, onRemoveCard }: CardProps) {
     const { isOpen, open, close } = useModal();
     const title = task?.name ?? "Task";
-
+    const [localName, setLocalName] = useState(task?.name || "Task");
     const [localDesc, setLocalDesc] = useState(task?.description || "");
     const [localPriority, setLocalPriority] = useState(task?.priority || "");
     const [localStatus, setLocalStatus] = useState<ColumnStatus>(task?.status || "todo");
@@ -67,6 +67,7 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
      */
     useEffect(() => {
         if (isOpen) {
+            setLocalName(task?.name || "Task");
             setLocalDesc(task?.description || "");
             setLocalPriority(task?.priority || "");
             setLocalStatus(task?.status || "todo");
@@ -95,6 +96,7 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
     const handleSave = () => {
         if (task?.id && onUpdateCard) {
             onUpdateCard(task.id, {
+                name: localName.trim() || "Untitled Task",
                 description: localDesc,
                 priority: (localPriority || "") as any,
                 status: localStatus,
@@ -109,6 +111,10 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
         <Modal isOpen={isOpen} onClose={close} title={title}>
             {/* Body: Edit form mapped directly to the active task's local state hook. */}
             <div className={modalStyles.modal_body}>
+                <div className={modalStyles.modal_field}>
+                    <span className={modalStyles.modal_label}>Title</span>
+                    <input type="text" className={modalStyles.modal_input} value={localName} onChange={(e) => setLocalName(e.target.value)} />
+                </div>
                 <div className={modalStyles.modal_field}>
                     <span className={modalStyles.modal_label}>Description</span>
                     <textarea className={modalStyles.modal_textarea} value={localDesc} placeholder="Add a more detailed description..." onChange={(e) => setLocalDesc(e.target.value)} />

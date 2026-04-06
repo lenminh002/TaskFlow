@@ -201,6 +201,7 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
         );
 
         const dbUpdates: Record<string, string | null> = {};
+        if (updates.name !== undefined) dbUpdates.name = updates.name;
         if (updates.description !== undefined) dbUpdates.description = updates.description === "" ? null : updates.description;
         if (updates.priority !== undefined) dbUpdates.priority = (updates.priority as any) === "" ? null : updates.priority;
         if (updates.status !== undefined) dbUpdates.status = updates.status;

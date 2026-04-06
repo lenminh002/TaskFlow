@@ -48,7 +48,8 @@ interface TaskRow {
 // ─── Board actions (navbar items) ───────────────────────────────────
 
 /**
- * Fetch all boards from Supabase
+ * Fetch all boards from Supabase.
+ * @returns Object containing the boards list and the current user's UUID for role mapping.
  */
 export async function fetchBoards(): Promise<{ boards: Board[], currentUserId: string }> {
     const supabase = await createClient()
@@ -76,7 +77,9 @@ export async function fetchBoards(): Promise<{ boards: Board[], currentUserId: s
 }
 
 /**
- * Insert a new board into Supabase
+ * Insert a new board into Supabase.
+ * @param board - The board object containing a generated UUID and name.
+ * @returns The newly created Board object or null.
  */
 export async function addBoard(board: { id: string; name: string }): Promise<Board | null> {
     const supabase = await createClient()
@@ -103,7 +106,9 @@ export async function addBoard(board: { id: string; name: string }): Promise<Boa
 // ─── Card actions (kanban cards within a board) ─────────────────────
 
 /**
- * Fetch all cards belonging to a specific board
+ * Fetch all cards belonging to a specific board.
+ * @param boardId - The UUID of the board to query.
+ * @returns Array of Tasks sorted by their board position index.
  */
 export async function fetchCards(boardId: string): Promise<Task[]> {
     const supabase = await createClient()
@@ -134,7 +139,9 @@ export async function fetchCards(boardId: string): Promise<Task[]> {
 }
 
 /**
- * Insert a new card into Supabase, linked to a board
+ * Insert a new card into Supabase, linked to a board.
+ * @param card - Minimal task object for insertion.
+ * @returns The hydrated Task instance.
  */
 export async function addCard(card: { id: string; name: string; status: ColumnStatus; boardId: string }): Promise<Task | null> {
     const supabase = await createClient()
@@ -202,6 +209,11 @@ export async function updateCardStatus(id: string, status: ColumnStatus): Promis
 /**
  * Update the exact positions and status of multiple tasks simultaneously
  * following a drag-and-drop workflow.
+ * 
+ * Note: Uses Promise.all to fire multiple updates in parallel. 
+ * For large boards, a custom RPC function in Postgres would be more atomic and efficient.
+ * 
+ * @param updates - Array of task coordinate updates (ID, New Position, New Status).
  */
 export async function updateTaskPositions(updates: { id: string, position: number, status: string }[]): Promise<boolean> {
     const supabase = await createClient()
@@ -223,9 +235,11 @@ export async function updateTaskPositions(updates: { id: string, position: numbe
 }
 
 /**
- * Update multiple fields of a card
+ * Update multiple fields of a card dynamically.
+ * @param id - Task UUID.
+ * @param updates - Partial mapping of fields to mutate (name, description, priority, etc).
  */
-export async function updateCardDetails(id: string, updates: Partial<{ description: string; priority: string; due_date: string | null; status: string; assignee_id: string | null }>): Promise<boolean> {
+export async function updateCardDetails(id: string, updates: Partial<{ name: string; description: string; priority: string; due_date: string | null; status: string; assignee_id: string | null }>): Promise<boolean> {
     const supabase = await createClient()
     const { error } = await supabase
         .from('tasks')
@@ -297,11 +311,13 @@ export async function leaveBoard(id: string): Promise<boolean> {
         throw new Error(`Failed to leave board: ${error.message}`)
     }
     if (count === 0) {
+        // If count is 0, the user wasn't actually a member (security guard)
         console.error('Silent fail: No matching board_members row found to delete for user', session.user.id);
         throw new Error(`backend_silent_fail_delete`);
     }
 
-    // 2. Unassign the user from all tasks in the board cleanly.
+    // Phase 2: Unassign the user from all tasks in the board cleanly.
+    // This prevents "Ghost Assignees" where a user who left still appears on tasks.
     const { error: tasksError } = await supabase
         .from('tasks')
         .update({ assignee_id: null })
@@ -364,7 +380,16 @@ export async function addBoardMember(boardId: string, memberId: string): Promise
     return true
 }
 
-/** Fetch all users (Owner + Members) who have interactive access to a specific board natively */
+/** 
+ * Fetch all users (Owner + Members) who have interactive access to a specific board.
+ * 
+ * Technical Implementation:
+ * Uses a Set to deduplicate IDs between the board owner and the members table,
+ * then performs a second 'in' query to fetch the full profiles.
+ * 
+ * @param boardId - Board UUID.
+ * @returns Array of User profiles (id, username).
+ */
 export async function fetchBoardMembersFull(boardId: string): Promise<{id: string, username: string}[]> {
     const supabase = await createClient();
     

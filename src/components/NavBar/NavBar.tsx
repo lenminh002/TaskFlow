@@ -177,7 +177,9 @@ export default function NavBar() {
             <nav className={styles.nav}>
                 {/* Header section: app name and subtitle */}
                 <div className={styles.header}>
-                    <h1 className={styles.title}>TaskFlow</h1>
+                    <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <h1 className={styles.title}>TaskFlow</h1>
+                    </Link>
                     <p className={styles.subtitle}>Manage your tasks efficiently</p>
                     <br />
                     <hr style={{ border: '1.5px solid #000000' }} />
@@ -209,7 +211,7 @@ export default function NavBar() {
                         // Role Guard Check: Natively determine owner logic for each board iterably.
                         // Owners have full destruct rights. External members can only "Leave" safely.
                         const isOwner = board.userId === currentUserId;
-                        
+
                         return (
                             <div key={board.id} className={styles.nav_item_container}>
                                 <Link
@@ -225,10 +227,10 @@ export default function NavBar() {
                                     title={isOwner ? "Delete board" : "Leave board"}
                                 >
                                     {isOwner ? '×' : (
-                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                             <path d="M16 13v-2H7V8l-5 4 5 4v-3z"></path>
-                                             <path d="M20 3h-9c-1.103 0-2 .897-2 2v4h2V5h9v14h-9v-4H9v4c0 1.103.897 2 2 2h9c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2z"></path>
-                                         </svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M16 13v-2H7V8l-5 4 5 4v-3z"></path>
+                                            <path d="M20 3h-9c-1.103 0-2 .897-2 2v4h2V5h9v14h-9v-4H9v4c0 1.103.897 2 2 2h9c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2z"></path>
+                                        </svg>
                                     )}
                                 </button>
                             </div>

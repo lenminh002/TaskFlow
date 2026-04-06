@@ -1,3 +1,9 @@
+/**
+ * @file layout.tsx
+ * @description Root Application Layout for TaskFlow.
+ * @details Sets up global fonts, metadata, and wraps the application in the AuthProvider and sidebar NavBar.
+ */
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -19,6 +25,9 @@ export const metadata: Metadata = {
   description: "TaskFlow is a task management application",
 };
 
+/**
+ * Global application layout wrapper.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
