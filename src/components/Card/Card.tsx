@@ -96,10 +96,10 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
         if (task?.id && onUpdateCard) {
             onUpdateCard(task.id, {
                 description: localDesc,
-                priority: localPriority ? (localPriority as "low" | "medium" | "high" | "urgent") : undefined,
+                priority: (localPriority || "") as any,
                 status: localStatus,
-                assigneeId: localAssigneeId || undefined,
-                dueDate: localDueDate ? new Date(localDueDate) : undefined
+                assigneeId: localAssigneeId || "",
+                dueDate: localDueDate ? new Date(localDueDate) : "" as any
             });
         }
         close();

@@ -66,7 +66,8 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
                 {
                     event: '*',
                     schema: 'public',
-                    table: 'tasks'
+                    table: 'tasks',
+                    filter: `board_id=eq.${boardId}`
                 },
                 async (payload) => {
                     if (process.env.NODE_ENV === 'development') {
@@ -199,21 +200,15 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
             prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
         );
 
-        const dbUpdates: Partial<{
-            description: string;
-            priority: string;
-            status: string;
-            assignee_id: string | null;
-            due_date: string | null;
-        }> = {};
-        if (updates.description !== undefined) dbUpdates.description = updates.description;
-        if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
+        const dbUpdates: Record<string, string | null> = {};
+        if (updates.description !== undefined) dbUpdates.description = updates.description === "" ? null : updates.description;
+        if (updates.priority !== undefined) dbUpdates.priority = (updates.priority as any) === "" ? null : updates.priority;
         if (updates.status !== undefined) dbUpdates.status = updates.status;
-        if (updates.assigneeId !== undefined) dbUpdates.assignee_id = updates.assigneeId;
+        if (updates.assigneeId !== undefined) dbUpdates.assignee_id = updates.assigneeId === "" ? null : updates.assigneeId;
         if (updates.dueDate !== undefined) {
             dbUpdates.due_date = updates.dueDate instanceof Date
                 ? updates.dueDate.toISOString()
-                : updates.dueDate;
+                : updates.dueDate === "" ? null : updates.dueDate;
         }
 
         try {
@@ -261,6 +256,8 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
             const activeIndex = tasks.findIndex((t) => t.id === activeId);
             const overIndex = tasks.findIndex((t) => t.id === overId);
 
+            if (activeIndex === -1 || (isOverTask && overIndex === -1)) return tasks;
+
             if (isOverTask && tasks[activeIndex].status !== tasks[overIndex].status) {
                 const newTasks = [...tasks];
                 newTasks[activeIndex].status = tasks[overIndex].status;
@@ -301,32 +298,45 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
 
         let updatesToSync: { id: string, position: number, status: string }[] = [];
 
-        setTasks((tasks) => {
-            const activeIndex = tasks.findIndex((t) => t.id === activeId);
-            const overIndex = tasks.findIndex((t) => t.id === overId);
+        // By processing the React array map synchronously OUTSIDE the `setTasks` pure updater function,
+        // we guarantee `updatesToSync` is populated *before* evaluating the remote DB sync conditions.
+        const activeIndex = tasks.findIndex((t) => t.id === activeId);
+        const overIndex = tasks.findIndex((t) => t.id === overId);
+        const isOverColumn = over.data.current?.type === "Column";
 
-            let newTasks = tasks;
-            if (activeIndex !== overIndex) {
-                newTasks = arrayMove(newTasks, activeIndex, overIndex);
-            }
+        if (activeIndex === -1) return;
+        // Don't early return if the drop is explicitly over an empty column
+        if (!isOverColumn && overIndex === -1) return;
 
-            const status = newTasks.find(t => t.id === activeId)?.status;
-            const columnTasks = newTasks.filter(t => t.status === status);
+        let newTasks = [...tasks];
+        
+        // If dropping onto a column directly, shift its internal status natively first.
+        if (isOverColumn) {
+            newTasks[activeIndex].status = overId as ColumnStatus;
+            // Shoving to the absolute end of the array is essentially what `arrayMove(..., idx, -1)` does anyway!
+            newTasks = arrayMove(newTasks, activeIndex, newTasks.length - 1);
+        } else if (activeIndex !== overIndex) {
+            newTasks = arrayMove(newTasks, activeIndex, overIndex);
+        }
 
-            newTasks = newTasks.map(t => {
-                if (t.status === status) {
-                    const idx = columnTasks.findIndex(ct => ct.id === t.id);
-                    const newPos = (idx + 1) * 1000;
-                    if (t.position !== newPos || t.id === activeId) {
-                        updatesToSync.push({ id: t.id, position: newPos, status: t.status as string });
-                        return { ...t, position: newPos };
-                    }
+        const status = newTasks.find(t => t.id === activeId)?.status;
+        const columnTasks = newTasks.filter(t => t.status === status);
+
+        newTasks = newTasks.map(t => {
+            if (t.status === status) {
+                const idx = columnTasks.findIndex(ct => ct.id === t.id);
+                const newPos = (idx + 1) * 1000;
+                // If position drifted OR it's the exact card we just dropped, force an update payload
+                if (t.position !== newPos || t.id === activeId) {
+                    updatesToSync.push({ id: t.id, position: newPos, status: t.status as string });
+                    return { ...t, position: newPos };
                 }
-                return t;
-            });
-
-            return newTasks;
+            }
+            return t;
         });
+
+        // Apply updated positions locally instantly
+        setTasks(newTasks);
 
         // Sync positions to database asynchronously
         if (updatesToSync.length > 0) {

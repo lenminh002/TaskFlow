@@ -301,12 +301,17 @@ export async function leaveBoard(id: string): Promise<boolean> {
         throw new Error(`backend_silent_fail_delete`);
     }
 
-    // Cascade remove this user's task assignments concurrently!
-    await supabase
+    // 2. Unassign the user from all tasks in the board cleanly.
+    const { error: tasksError } = await supabase
         .from('tasks')
         .update({ assignee_id: null })
         .eq('board_id', id)
         .eq('assignee_id', session.user.id);
+        
+    if (tasksError) {
+        console.error("Failed to cleanly unassign tasks during board exit:", tasksError);
+        throw new Error(tasksError.message);
+    }
 
     revalidatePath('/', 'layout');
 
