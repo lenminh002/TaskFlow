@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NavBar from "@/components/NavBar/NavBar";
+import AuthProvider from "@/components/AuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,18 +29,20 @@ export default function RootLayout({
     // (e.g. Grammarly, LastPass) that inject attributes into <html> or <body>
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body suppressHydrationWarning>
-        {/* NavBar is fixed on the left side (255px wide) */}
-        <NavBar />
-        {/* Main content area is offset to the right of the NavBar */}
-        <main
-          style={{
-            marginLeft: "255px",
-            padding: "2rem",
-            paddingTop: "1.5rem",
-          }}
-        >
-          {children}
-        </main>
+        <AuthProvider>
+          {/* NavBar is fixed on the left side (255px wide) */}
+          <NavBar />
+          {/* Main content area is offset to the right of the NavBar */}
+          <main
+            style={{
+              marginLeft: "255px",
+              padding: "2rem",
+              paddingTop: "1.5rem",
+            }}
+          >
+            {children}
+          </main>
+        </AuthProvider>
       </body>
     </html>
   );

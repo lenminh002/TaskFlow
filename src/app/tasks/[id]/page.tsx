@@ -9,13 +9,14 @@ import BoardContainer from "./BoardContainer";
 import BoardClient from "./BoardClient";
 import EditableTitle from "./EditableTitle";
 import { fetchCards } from "@/lib/actions";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 
 /** entrypoint for data hydration on Task board routes */
 export default async function TaskPage({ params }: { params: { id: string } }) {
     const { id } = await params;
 
     // Query Supabase directly to extract the specific board name for the page header
+    const supabase = await createClient();
     const { data: board } = await supabase
         .from('boards')
         .select('name')

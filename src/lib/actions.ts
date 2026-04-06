@@ -1,10 +1,12 @@
+"use server";
+
 /**
  * @file actions.ts
  * @description Supabase database CRUD operations.
  * @details Server actions abstracting direct DB calls for the frontend components.
  */
 
-import { supabase } from './supabase'
+import { createClient } from './supabase/server'
 import type { Task, ColumnStatus, Board } from '@/type/types'
 
 // ─── Shared Utilities ───────────────────────────────────────────────
@@ -21,6 +23,7 @@ function validateStatus(status: any): ColumnStatus {
  * Fetch all boards from Supabase
  */
 export async function fetchBoards(): Promise<Board[]> {
+    const supabase = await createClient()
     const { data, error } = await supabase
         .from('boards')
         .select('*')
@@ -42,6 +45,7 @@ export async function fetchBoards(): Promise<Board[]> {
  * Insert a new board into Supabase
  */
 export async function addBoard(board: { id: string; name: string }): Promise<Board | null> {
+    const supabase = await createClient()
     const { data, error } = await supabase
         .from('boards')
         .insert({ id: board.id, name: board.name })
@@ -66,6 +70,7 @@ export async function addBoard(board: { id: string; name: string }): Promise<Boa
  * Fetch all cards belonging to a specific board
  */
 export async function fetchCards(boardId: string): Promise<Task[]> {
+    const supabase = await createClient()
     const { data, error } = await supabase
         .from('tasks')
         .select('*')
@@ -94,6 +99,7 @@ export async function fetchCards(boardId: string): Promise<Task[]> {
  * Insert a new card into Supabase, linked to a board
  */
 export async function addCard(card: { id: string; name: string; status: ColumnStatus; boardId: string }): Promise<Task | null> {
+    const supabase = await createClient()
     const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -123,6 +129,7 @@ export async function addCard(card: { id: string; name: string; status: ColumnSt
  * Delete a card from Supabase by ID
  */
 export async function removeCard(id: string): Promise<boolean> {
+    const supabase = await createClient()
     const { error } = await supabase
         .from('tasks')
         .delete()
@@ -140,6 +147,7 @@ export async function removeCard(id: string): Promise<boolean> {
  * Update a card's status (useful for drag-and-drop later)
  */
 export async function updateCardStatus(id: string, status: ColumnStatus): Promise<boolean> {
+    const supabase = await createClient()
     const { error } = await supabase
         .from('tasks')
         .update({ status })
@@ -158,8 +166,7 @@ export async function updateCardStatus(id: string, status: ColumnStatus): Promis
  * following a drag-and-drop workflow.
  */
 export async function updateTaskPositions(updates: { id: string, position: number, status: string }[]): Promise<boolean> {
-    // Use individual .update() calls instead of .upsert() to avoid NOT NULL constraint violations.
-    // upsert tries to insert a full row if the id doesn't match, which fails when required columns like `name` are missing.
+    const supabase = await createClient()
     const results = await Promise.all(
         updates.map(u =>
             supabase
@@ -181,6 +188,7 @@ export async function updateTaskPositions(updates: { id: string, position: numbe
  * Update multiple fields of a card
  */
 export async function updateCardDetails(id: string, updates: Partial<{ description: string; priority: string; due_date: string | null; status: string }>): Promise<boolean> {
+    const supabase = await createClient()
     const { error } = await supabase
         .from('tasks')
         .update(updates)
@@ -198,6 +206,7 @@ export async function updateCardDetails(id: string, updates: Partial<{ descripti
  * Update a board's name
  */
 export async function updateBoardName(id: string, name: string): Promise<boolean> {
+    const supabase = await createClient()
     const { error } = await supabase
         .from('boards')
         .update({ name })
@@ -215,6 +224,7 @@ export async function updateBoardName(id: string, name: string): Promise<boolean
  * Delete a board
  */
 export async function deleteBoard(id: string): Promise<boolean> {
+    const supabase = await createClient()
     const { error } = await supabase
         .from('boards')
         .delete()

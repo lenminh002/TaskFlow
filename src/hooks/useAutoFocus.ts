@@ -15,7 +15,7 @@ export function useAutoFocus<T extends HTMLElement>(condition: boolean, delayMs 
             // take a fraction of a millisecond to physically mount the node into the DOM.
             // If we fire .focus() instantly, the input element won't exist yet!
             const timeoutId = setTimeout(() => inputRef.current?.focus(), delayMs);
-            
+
             // Cleanup the timeout if the component unmounts before the delay finishes
             return () => clearTimeout(timeoutId);
         }
