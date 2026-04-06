@@ -54,7 +54,11 @@ export default function NavBar() {
     // Listen for custom events to instantly sync renamed boards in the sidebar
     useEffect(() => {
         function handleRename(e: Event) {
-            const { id, name } = (e as CustomEvent).detail
+            if (!(e instanceof CustomEvent) || !e.detail?.id || !e.detail?.name) {
+                console.warn('Invalid board-renamed event received');
+                return;
+            }
+            const { id, name } = e.detail;
             setBoards((prev) =>
                 prev.map((b) => (b.id === id ? { ...b, name } : b))
             )

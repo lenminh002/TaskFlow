@@ -8,14 +8,41 @@
 
 import { createClient } from './supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Task, ColumnStatus, Board } from '@/type/types'
+import type { Task, ColumnStatus, Board, TaskPriority } from '@/type/types'
+import { VALID_STATUSES, VALID_PRIORITIES } from '@/lib/constants'
 
 // ─── Shared Utilities ───────────────────────────────────────────────
 
-const VALID_STATUSES: ColumnStatus[] = ["todo", "in_progress", "in_review", "done"];
+function validateStatus(status: unknown): ColumnStatus {
+    if (typeof status === 'string' && VALID_STATUSES.includes(status as ColumnStatus)) {
+        return status as ColumnStatus;
+    }
+    console.warn(`Invalid status "${status}" encountered, defaulting to "todo"`);
+    return "todo";
+}
 
-function validateStatus(status: any): ColumnStatus {
-    return VALID_STATUSES.includes(status) ? (status as ColumnStatus) : "todo";
+function validatePriority(priority: unknown): TaskPriority | undefined {
+    if (!priority) return undefined;
+    if (typeof priority === 'string' && VALID_PRIORITIES.includes(priority as TaskPriority)) {
+        return priority as TaskPriority;
+    }
+    console.warn(`Invalid priority "${priority}" encountered, returning undefined`);
+    return undefined;
+}
+
+// Type definition for Supabase task row with joined user data
+interface TaskRow {
+    id: string;
+    board_id: string;
+    name: string;
+    description?: string | null;
+    status: string;
+    priority?: string | null;
+    created_at: string;
+    due_date?: string | null;
+    position?: number | null;
+    assignee_id?: string | null;
+    users?: { username: string } | null;
 }
 
 // ─── Board actions (navbar items) ───────────────────────────────────
@@ -91,13 +118,13 @@ export async function fetchCards(boardId: string): Promise<Task[]> {
         throw new Error(`Failed to fetch cards: ${error.message}`)
     }
 
-    return (data ?? []).map((row: any) => ({
+    return (data ?? []).map((row: TaskRow) => ({
         id: row.id,
         boardId: row.board_id,
         name: row.name,
         description: row.description ?? undefined,
         status: validateStatus(row.status),
-        priority: row.priority ?? undefined,
+        priority: validatePriority(row.priority),
         createdAt: row.created_at,
         dueDate: row.due_date ?? undefined,
         position: row.position ?? 0,

@@ -7,9 +7,10 @@ import type { Task, ColumnStatus } from "@/type/types";
 import styles from "./Card.module.css";
 import Modal from "@/components/Modal/Modal";
 import modalStyles from "@/components/Modal/Modal.module.css";
-import { formatStatusLabel } from "@/lib/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { PRIORITY_OPTIONS, STATUS_OPTIONS, getPriorityLabel } from "@/lib/constants";
+import { parseSafeDate, formatDate } from "@/lib/utils";
 
 /**
  * @file Card.tsx
@@ -30,50 +31,6 @@ interface CardProps {
     onClick?: () => void;
     onUpdateCard?: (id: string, updates: Partial<Task>) => void;
     onRemoveCard?: (id: string) => void;
-}
-
-/**
- * Utility Function: Formats a JS Date object or raw timestamp string into a readable format.
- * Transforms `2024-04-05T...` into "Apr 5, 2024".
- * @param value - The raw Date object or ISO string timeline.
- * @returns An American-formatted localized string, or null if undefined.
- */
-function formatDate(value?: Date | string): string | null {
-    if (!value) return null;
-    const date = typeof value === "string" ? new Date(value) : value;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-/**
- * Utility Function: Maps raw database enum variants to user-friendly emoji badges.
- * Provides a highly scannable visual identifier on the surface of the Card.
- * @param priority - The raw priority string ("low", "medium", "high", "urgent").
- * @returns The decorated label including its emoji prefix.
- */
-function priorityLabel(priority?: string): string | null {
-    if (!priority) return null;
-    const labels: Record<string, string> = {
-        low: "🟢 Low",
-        medium: "🟡 Medium",
-        high: "🟠 High",
-        urgent: "🔴 Urgent",
-    };
-    return labels[priority] ?? priority;
-}
-
-/**
- * Utility Function: Safely parses ISO date strings into valid component states without crashing on `new Date()`.
- * @param dateStr - Data passed from the database.
- * @returns YYYY-MM-DD string valid for the HTML input picker, or empty string on failure.
- */
-function parseSafeDate(dateStr?: Date | string): string {
-    if (!dateStr) return "";
-    try {
-        const d = new Date(dateStr);
-        return isNaN(d.valueOf()) ? "" : d.toISOString().split('T')[0];
-    } catch {
-        return "";
-    }
 }
 
 export default function Card({ task, teamMembers = [], onClick, onUpdateCard, onRemoveCard }: CardProps) {
@@ -159,20 +116,17 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
                 <div className={modalStyles.modal_field}>
                     <span className={modalStyles.modal_label}>Priority</span>
                     <select className={modalStyles.modal_select} value={localPriority} onChange={(e) => setLocalPriority(e.target.value)}>
-                        <option value="">None</option>
-                        <option value="low">🟢 Low</option>
-                        <option value="medium">🟡 Medium</option>
-                        <option value="high">🟠 High</option>
-                        <option value="urgent">🔴 Urgent</option>
+                        {PRIORITY_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
                     </select>
                 </div>
                 <div className={modalStyles.modal_field}>
                     <span className={modalStyles.modal_label}>Status</span>
                     <select className={modalStyles.modal_select} value={localStatus} onChange={(e) => setLocalStatus(e.target.value as ColumnStatus)}>
-                        <option value="todo">To Do</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="in_review">In Review</option>
-                        <option value="done">Done</option>
+                        {STATUS_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
                     </select>
                 </div>
                 <div className={modalStyles.modal_field}>
@@ -252,7 +206,7 @@ export default function Card({ task, teamMembers = [], onClick, onUpdateCard, on
                     <div className={styles.card_meta}>
                         {task?.assigneeName && <span className={styles.card_tag}>👤 {task.assigneeName}</span>}
                         {task?.assigneeId && !task.assigneeName && <span className={styles.card_tag}>👤 Assigned</span>}
-                        {task?.priority && <span className={styles.card_tag}>{priorityLabel(task.priority)}</span>}
+                        {task?.priority && <span className={styles.card_tag}>{getPriorityLabel(task.priority)}</span>}
                         {task?.dueDate && <span className={styles.card_tag}>📅 Due: {formatDate(task.dueDate)}</span>}
                     </div>
                 </div>

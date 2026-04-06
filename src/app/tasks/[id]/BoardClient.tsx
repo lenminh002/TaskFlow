@@ -8,19 +8,13 @@ import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, DragOver
 import { arrayMove } from "@dnd-kit/sortable";
 import Card from "@/components/Card/Card";
 import { createClient } from "@/lib/supabase/client";
+import { BOARD_COLUMNS } from "@/lib/constants";
 
 /**
  * @file BoardClient.tsx
  * @description Central state manager for the Kanban board UI.
  * @details Manages local React state for all tasks, orchestrating drag-and-drop via dnd-kit, UI updates, and Supabase synchronization.
  */
-
-const BOARD_COLUMNS: { title: string; status: ColumnStatus }[] = [
-    { title: "To Do", status: "todo" },
-    { title: "In Progress", status: "in_progress" },
-    { title: "In Review", status: "in_review" },
-    { title: "Done", status: "done" },
-];
 
 /**
  * @param boardId - The ID of the database board currently being rendered.
@@ -75,7 +69,9 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
                     table: 'tasks'
                 },
                 async (payload) => {
-                    console.log("⚡ Realtime Sync Fired:", payload.eventType);
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log("⚡ Realtime Sync Fired:", payload.eventType);
+                    }
 
                     // ARCHITECTURE FIX: 
                     // Instead of using `router.refresh()` which Next.js caches aggressively without cache invalidations,
@@ -91,7 +87,9 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
                 }
             )
             .subscribe((status) => {
-                console.log("Supabase WebSocket:", status);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log("Supabase WebSocket:", status);
+                }
             });
 
         return () => {
@@ -201,7 +199,13 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
             prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
         );
 
-        const dbUpdates: any = {};
+        const dbUpdates: Partial<{
+            description: string;
+            priority: string;
+            status: string;
+            assignee_id: string | null;
+            due_date: string | null;
+        }> = {};
         if (updates.description !== undefined) dbUpdates.description = updates.description;
         if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
         if (updates.status !== undefined) dbUpdates.status = updates.status;
@@ -295,6 +299,8 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
         const activeId = active.id as string;
         const overId = over.id as string;
 
+        let updatesToSync: { id: string, position: number, status: string }[] = [];
+
         setTasks((tasks) => {
             const activeIndex = tasks.findIndex((t) => t.id === activeId);
             const overIndex = tasks.findIndex((t) => t.id === overId);
@@ -306,8 +312,6 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
 
             const status = newTasks.find(t => t.id === activeId)?.status;
             const columnTasks = newTasks.filter(t => t.status === status);
-
-            const updatesToSync: { id: string, position: number, status: string }[] = [];
 
             newTasks = newTasks.map(t => {
                 if (t.status === status) {
@@ -321,17 +325,15 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
                 return t;
             });
 
-            if (updatesToSync.length > 0) {
-                // Dispatched implicitly in the background
-                try {
-                    updateTaskPositions(updatesToSync);
-                } catch (e) {
-                    console.error("Failed to sync drag positions:", e);
-                }
-            }
-
             return newTasks;
         });
+
+        // Sync positions to database asynchronously
+        if (updatesToSync.length > 0) {
+            updateTaskPositions(updatesToSync).catch((e) => {
+                console.error("Failed to sync drag positions:", e);
+            });
+        }
     }
 
     // SSR Guard for dnd-kit dynamic aria attributes hydration mismatch

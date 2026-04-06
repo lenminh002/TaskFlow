@@ -32,7 +32,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             let currentSession = (await supabase.auth.getSession()).data.session;
             
             if (!currentSession) {
-                console.log("No active session detected. Spawning new Anonymous Guest Profile...");
+                if (process.env.NODE_ENV === 'development') {
+                    console.log("No active session detected. Spawning new Anonymous Guest Profile...");
+                }
                 const { error, data: authData } = await supabase.auth.signInAnonymously();
                 
                 if (error || !authData.session) {
@@ -55,7 +57,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                     .single();
 
                 if (!profile) {
-                    console.log("No users table row detected. Staging Welcome Interceptor.");
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log("No users table row detected. Staging Welcome Interceptor.");
+                    }
                     setNeedsUsername(true);
                 } else {
                     // Existing complete user detected

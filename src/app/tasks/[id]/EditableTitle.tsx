@@ -35,14 +35,19 @@ export default function EditableTitle({ boardId, initialName }: { boardId: strin
             return;
         }
 
-        const success = await updateBoardName(boardId, trimmed);
-        if (!success) {
-            setName(initialName); // Rollback locally if the network payload fails
-        } else {
-            // Broadcast a CustomEvent so disconnected UI trees (like the sidebar) resync immediately
-            window.dispatchEvent(new CustomEvent("board-renamed", {
-                detail: { id: boardId, name: trimmed }
-            }));
+        try {
+            const success = await updateBoardName(boardId, trimmed);
+            if (success) {
+                // Broadcast a CustomEvent so disconnected UI trees (like the sidebar) resync immediately
+                window.dispatchEvent(new CustomEvent("board-renamed", {
+                    detail: { id: boardId, name: trimmed }
+                }));
+            } else {
+                setName(initialName); // Rollback locally if the network payload fails
+            }
+        } catch (error) {
+            console.error("Failed to update board name:", error);
+            setName(initialName); // Rollback on error
         }
     }
 

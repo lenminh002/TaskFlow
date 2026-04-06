@@ -51,8 +51,17 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
     
     // Attempt lookup natively for UX author mapping
     if (board.user_id) {
-        const { data: profile } = await supabase.from('users').select('username').eq('id', board.user_id).single();
-        if (profile) creatorUsername = profile.username;
+        const { data: profile, error } = await supabase
+            .from('users')
+            .select('username')
+            .eq('id', board.user_id)
+            .single();
+        
+        if (error) {
+            console.warn(`User profile not found for board owner: ${board.user_id}`, error);
+        } else if (profile) {
+            creatorUsername = profile.username;
+        }
     }
 
     // Bulk fetch all tasks filtered by the current board ID locally to hydrate the client
