@@ -10,7 +10,7 @@ CREATE TABLE users (
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 -- Anyone can look up unidentifiable profiles to map Assignee Names
 CREATE POLICY "Public profiles are readable by everyone" ON users FOR SELECT USING (true);
-CREATE POLICY "Users can insert their own profile" ON users FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users manage own profile" ON users FOR ALL USING (auth.uid() = id);
 
 -- ========================================
 -- Boards table (navbar items / projects)
@@ -70,7 +70,7 @@ CREATE TABLE tasks (
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 -- Complete board hierarchy mapping. If you have board access, you have task mutation rights implicitly.
 CREATE POLICY "Task access" ON tasks FOR ALL USING (
-  auth.uid() = user_id OR EXISTS (SELECT 1 FROM board_members WHERE board_id = tasks.board_id AND user_id = auth.uid())
+  EXISTS (SELECT 1 FROM boards WHERE id = tasks.board_id AND (user_id = auth.uid() OR EXISTS (SELECT 1 FROM board_members WHERE board_id = boards.id AND user_id = auth.uid())))
 );
 
 -- ========================================
