@@ -139,7 +139,7 @@ export async function fetchCards(boardId: string): Promise<Task[]> {
  * @param card - Minimal task object for insertion.
  * @returns The hydrated Task instance.
  */
-export async function addCard(card: { id: string; name: string; status: ColumnStatus; boardId: string }): Promise<Task | null> {
+export async function addCard(card: { id: string; name: string; status: ColumnStatus; boardId: string; position?: number }): Promise<Task | null> {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('tasks')
@@ -148,6 +148,7 @@ export async function addCard(card: { id: string; name: string; status: ColumnSt
             name: card.name,
             status: card.status,
             board_id: card.boardId,
+            position: card.position,
         })
         .select()
         .single()
@@ -270,6 +271,14 @@ export async function leaveBoard(id: string): Promise<boolean> {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.user?.id) throw new Error("No active session")
 
+    const { error: tasksError } = await supabase
+        .from('tasks')
+        .update({ assignee_id: null })
+        .eq('board_id', id)
+        .eq('assignee_id', session.user.id);
+    
+    if (tasksError) handleError('cleanly unassign tasks during board exit', tasksError);
+
     const { error, count } = await supabase
         .from('board_members')
         .delete({ count: 'exact' })
@@ -282,16 +291,6 @@ export async function leaveBoard(id: string): Promise<boolean> {
         console.error('Silent fail: No matching board_members row found to delete for user', session.user.id);
         throw new Error(`backend_silent_fail_delete`);
     }
-
-    // Phase 2: Unassign the user from all tasks in the board cleanly.
-    // This prevents "Ghost Assignees" where a user who left still appears on tasks.
-    const { error: tasksError } = await supabase
-        .from('tasks')
-        .update({ assignee_id: null })
-        .eq('board_id', id)
-        .eq('assignee_id', session.user.id);
-        
-    if (tasksError) handleError('cleanly unassign tasks during board exit', tasksError);
 
     revalidatePath('/', 'layout');
 

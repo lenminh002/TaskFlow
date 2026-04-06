@@ -212,9 +212,8 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
         setTasks((prev) => [...prev, newTask]);
 
         try {
-            await addCard({ id: newTask.id, name: newTask.name, status: status, boardId: boardId });
-            // Await position sync to ensure the new task's order is persisted before the user can interact further.
-            await updateTaskPositions([{ id: newTask.id, position: newPos, status: status }]);
+            startCooldown();
+            await addCard({ id: newTask.id, name: newTask.name, status: status, boardId: boardId, position: newPos });
         } catch (e) {
             console.error("Failed to add new task:", e);
             setTasks((prev) => prev.filter((t) => t.id !== newTask.id));
@@ -351,6 +350,8 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
         const { active, over } = event;
         if (!over) return;
 
+        const previousTasks = tasks;
+
         const activeId = active.id as string;
         const overId = over.id as string;
         const isOverColumn = over.data.current?.type === "Column";
@@ -393,6 +394,7 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
             startCooldown(); // Suppress our own realtime events
             updateTaskPositions(updatesToSync).catch((e) => {
                 console.error("Failed to sync drag positions:", e);
+                setTasks(previousTasks);
             });
         }
     }
@@ -439,4 +441,3 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
         </DndContext>
     );
 }
-

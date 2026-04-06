@@ -50,11 +50,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 setUserId(uid);
                 
                 // Read from Public public users table to verify if they went through the Welcome Gate
-                const { data: profile } = await supabase
+                const { data: profile, error: profileError } = await supabase
                     .from('users')
                     .select('id')
                     .eq('id', uid)
                     .single();
+
+                if (profileError && profileError.code !== 'PGRST116') {
+                    console.error("Failed to verify user profile:", profileError);
+                    return;
+                }
 
                 if (!profile) {
                     if (process.env.NODE_ENV === 'development') {

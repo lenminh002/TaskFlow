@@ -5,7 +5,6 @@ import Modal from "./Modal/Modal";
 import modalStyles from "@/components/Modal/Modal.module.css";
 import { createUserProfile } from "@/lib/actions";
 import { useModal } from "@/hooks/useModal";
-import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 /**
  * @file WelcomeModal.tsx
@@ -13,11 +12,9 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
  */
 
 export default function WelcomeModal({ userId, onComplete }: { userId: string, onComplete: () => void }) {
-    const { isOpen, close } = useModal(true);
+    const { isOpen } = useModal(true);
     const [username, setUsername] = useState("");
     const [loading, setLoading] = useState(false);
-
-    useEscapeKey(close, isOpen);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -26,7 +23,6 @@ export default function WelcomeModal({ userId, onComplete }: { userId: string, o
         try {
             // Push profile payload to public users table unlocking full interactive privileges platform-wide
             await createUserProfile(userId, username);
-            close();
             onComplete();
         } catch (err) {
             console.error(err);
@@ -35,11 +31,11 @@ export default function WelcomeModal({ userId, onComplete }: { userId: string, o
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={close} title="Welcome to TaskFlow!">
+        <Modal isOpen={isOpen} onClose={() => {}} title="Welcome to TaskFlow!" dismissible={false}>
             <form onSubmit={handleSubmit} className={modalStyles.modal_body}>
                 <label className={modalStyles.modal_label}>Username</label>
-                <input 
-                    type="text" 
+                <input
+                    type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="E.g. Alex"
@@ -47,8 +43,8 @@ export default function WelcomeModal({ userId, onComplete }: { userId: string, o
                     autoFocus
                     required
                 />
-                <button 
-                    type="submit" 
+                <button
+                    type="submit"
                     disabled={loading || !username.trim()}
                     className={modalStyles.modal_submit}
                 >

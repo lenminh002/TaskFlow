@@ -40,7 +40,7 @@ export default async function Home() {
           Your ID: {session.user.id}
         </div>
       )}
-      <h1>Select a project to start</h1>
+      <h1>Select or create a project to start</h1>
     </div>
   );
 }
