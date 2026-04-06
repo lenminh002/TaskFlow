@@ -1,12 +1,6 @@
 :root {
   --background: #ffffff;
   --foreground: #0b0b0b;
-  --neo-border: var(--neo-border);
-  --neo-shadow-sm: 2px 2px 0px #000;
-  --neo-shadow-md: 3px 3px 0px #000;
-  --neo-shadow-lg: 4px 4px 0px #000;
-  --neo-shadow-xl: 6px 6px 0px #000;
-  --neo-shadow-2xl: 8px 8px 0px #000;
 }
 
 html {

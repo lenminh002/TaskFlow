@@ -65,7 +65,7 @@
     overflow-y: hidden;
     overscroll-behavior: contain;
     padding: 2rem;
-    border: var(--neo-border);
+    border: 2px solid #000000;
     background-color: #e4e4e4;
     box-shadow: 0px 0px 5px #000;
 

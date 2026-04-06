@@ -36,8 +36,8 @@
     width: 100%;
     padding: 0.25rem 0.5rem;
     outline: none;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-md);
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px #000;
     transition: all 0.1s ease;
 }
 
@@ -55,8 +55,8 @@
     padding: 0.25rem 0.5rem;
     cursor: pointer;
     background-color: #ffffff;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-md);
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px #000;
     transition: all 0.1s ease;
 }
 
@@ -87,19 +87,19 @@
     cursor: pointer;
     font-size: 0.9rem;
     background-color: #ffffff;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-lg);
+    border: 2px solid #000000;
+    box-shadow: 4px 4px 0px #000;
     transition: all 0.1s ease;
 }
 
 .nav_item:hover {
     transform: translate(-2px, -2px);
-    box-shadow: var(--neo-shadow-xl);
+    box-shadow: 6px 6px 0px #000;
 }
 
 .nav_item_active {
     transform: translate(2px, 2px);
-    box-shadow: var(--neo-shadow-sm);
+    box-shadow: 2px 2px 0px #000;
     background-color: #e8e8e8;
     font-weight: 600;
 }
@@ -113,8 +113,8 @@
     font-size: 1.25rem;
     cursor: pointer;
     background: #ffffff;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-lg);
+    border: 2px solid #000000;
+    box-shadow: 4px 4px 0px #000;
     transition: all 0.1s ease;
     display: flex;
     align-items: center;
@@ -124,17 +124,17 @@
 .nav_item_delete:hover {
     background: #ffcccc;
     transform: translate(-2px, -2px);
-    box-shadow: var(--neo-shadow-xl);
+    box-shadow: 6px 6px 0px #000;
 }
 
 .nav_item_delete:active {
     transform: translate(2px, 2px);
-    box-shadow: var(--neo-shadow-sm);
+    box-shadow: 2px 2px 0px #000;
 }
 
 .nav_item_active:hover {
     transform: translate(2px, 2px);
-    box-shadow: var(--neo-shadow-sm);
+    box-shadow: 2px 2px 0px #000;
     background-color: #e8e8e8;
     cursor: default;
 }
@@ -146,19 +146,19 @@
     cursor: pointer;
     font-size: 1.2rem;
     background-color: #ffffff;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-lg);
+    border: 2px solid #000000;
+    box-shadow: 4px 4px 0px #000;
     transition: all 0.1s ease;
 }
 
 .add_task:hover {
     transform: translate(-2px, -2px);
-    box-shadow: var(--neo-shadow-xl);
+    box-shadow: 6px 6px 0px #000;
 }
 
 .add_task:active {
     transform: translate(2px, 2px);
-    box-shadow: var(--neo-shadow-sm);
+    box-shadow: 2px 2px 0px #000;
 }
 
 /* Skeleton loading placeholder */
@@ -167,7 +167,7 @@
     background: linear-gradient(90deg, #e0e0e0 25%, #d0d0d0 50%, #e0e0e0 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
-    border: var(--neo-border);
+    border: 2px solid #000000;
 }
 
 @keyframes shimmer {

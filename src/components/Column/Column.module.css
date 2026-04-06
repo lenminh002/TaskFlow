@@ -6,8 +6,8 @@
     width: 30%;
     flex-shrink: 0;
     background-color: #ffffff;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-xl);
+    border: 2px solid #000000;
+    box-shadow: 6px 6px 0px #000;
     scrollbar-width: none;
 }
 
@@ -29,17 +29,17 @@
     cursor: pointer;
     font-size: 1.2rem;
     background-color: #ffffff;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-lg);
+    border: 2px solid #000000;
+    box-shadow: 4px 4px 0px #000;
     transition: all 0.1s ease;
 }
 
 .add_card:hover {
     transform: translate(-2px, -2px);
-    box-shadow: var(--neo-shadow-xl);
+    box-shadow: 6px 6px 0px #000;
 }
 
 .add_card:active {
     transform: translate(2px, 2px);
-    box-shadow: var(--neo-shadow-sm);
+    box-shadow: 2px 2px 0px #000;
 }

@@ -15,8 +15,8 @@
     width: min(100%, 24rem);
     padding: 1.25rem;
     background-color: #ffffff;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-2xl);
+    border: 2px solid #000000;
+    box-shadow: 8px 8px 0px #000;
 }
 
 .modal_header {
@@ -41,18 +41,18 @@
     font-size: 1.5rem;
     cursor: pointer;
     background: #ffffff;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-md);
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px #000;
 }
 
 .modal_close:hover {
     transform: translate(-1px, -1px);
-    box-shadow: var(--neo-shadow-lg);
+    box-shadow: 4px 4px 0px #000;
 }
 
 .modal_close:active {
     transform: translate(1px, 1px);
-    box-shadow: var(--neo-shadow-sm);
+    box-shadow: 2px 2px 0px #000;
 }
 
 .modal_hr {
@@ -78,8 +78,8 @@
     min-height: 80px;
     padding: 0.5rem 0.75rem;
     font-size: 0.95rem;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-md);
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px #000;
     outline: none;
     resize: vertical;
     transition: all 0.1s ease;
@@ -88,15 +88,15 @@
 
 .modal_textarea:focus {
     transform: translate(-1px, -1px);
-    box-shadow: var(--neo-shadow-lg);
+    box-shadow: 4px 4px 0px #000;
 }
 
 .modal_select {
     width: 100%;
     padding: 0.5rem 0.75rem;
     font-size: 0.95rem;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-md);
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px #000;
     outline: none;
     background: white;
     cursor: pointer;
@@ -105,7 +105,7 @@
 
 .modal_select:focus {
     transform: translate(-1px, -1px);
-    box-shadow: var(--neo-shadow-lg);
+    box-shadow: 4px 4px 0px #000;
 }
 
 .modal_label {
@@ -117,15 +117,15 @@
     width: 100%;
     padding: 0.5rem 0.75rem;
     font-size: 0.95rem;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-md);
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px #000;
     outline: none;
     transition: all 0.1s ease;
 }
 
 .modal_input:focus {
     transform: translate(-1px, -1px);
-    box-shadow: var(--neo-shadow-lg);
+    box-shadow: 4px 4px 0px #000;
 }
 
 .modal_submit {
@@ -135,17 +135,17 @@
     cursor: pointer;
     background-color: #000000;
     color: #ffffff;
-    border: var(--neo-border);
-    box-shadow: var(--neo-shadow-lg);
+    border: 2px solid #000000;
+    box-shadow: 4px 4px 0px #000;
     transition: all 0.1s ease;
 }
 
 .modal_submit:hover {
     transform: translate(-2px, -2px);
-    box-shadow: var(--neo-shadow-xl);
+    box-shadow: 6px 6px 0px #000;
 }
 
 .modal_submit:active {
     transform: translate(2px, 2px);
-    box-shadow: var(--neo-shadow-sm);
+    box-shadow: 2px 2px 0px #000;
 }
