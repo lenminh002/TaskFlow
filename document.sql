@@ -78,3 +78,22 @@ CREATE POLICY "Task access" ON tasks FOR ALL USING (
 -- ========================================
 -- Grants the Next.js Client hook access to the active Postgres WAL
 ALTER PUBLICATION supabase_realtime ADD TABLE tasks;
+
+-- ========================================
+-- Batch Position Update RPC Function
+-- ========================================
+-- Atomically updates task positions and statuses in a single transaction.
+-- Replaces N individual UPDATE queries with one call, reducing network
+-- round-trips and WAL event spam during drag-and-drop operations.
+--
+-- Usage: SELECT batch_update_positions('[{"id":"uuid","position":1000,"status":"todo"}]'::jsonb);
+CREATE OR REPLACE FUNCTION batch_update_positions(updates jsonb)
+RETURNS void AS $$
+BEGIN
+  UPDATE tasks SET
+    position = (item->>'position')::double precision,
+    status = item->>'status'
+  FROM jsonb_array_elements(updates) AS item
+  WHERE tasks.id = (item->>'id')::uuid;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

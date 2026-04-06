@@ -210,26 +210,21 @@ export async function updateCardStatus(id: string, status: ColumnStatus): Promis
  * Update the exact positions and status of multiple tasks simultaneously
  * following a drag-and-drop workflow.
  * 
- * Note: Uses Promise.all to fire multiple updates in parallel. 
- * For large boards, a custom RPC function in Postgres would be more atomic and efficient.
+ * Uses a single Postgres RPC function (`batch_update_positions`) to perform
+ * all updates in one atomic transaction, replacing the previous N-query approach.
  * 
  * @param updates - Array of task coordinate updates (ID, New Position, New Status).
  */
 export async function updateTaskPositions(updates: { id: string, position: number, status: string }[]): Promise<boolean> {
     const supabase = await createClient()
-    const results = await Promise.all(
-        updates.map(u =>
-            supabase
-                .from('tasks')
-                .update({ position: u.position, status: u.status })
-                .eq('id', u.id)
-        )
-    )
 
-    const failed = results.find(r => r.error)
-    if (failed?.error) {
-        console.error('Error updating task positions:', failed.error.message)
-        throw new Error(`Failed to update task positions: ${failed.error.message}`)
+    const { error } = await supabase.rpc('batch_update_positions', {
+        updates: updates
+    })
+
+    if (error) {
+        console.error('Error updating task positions:', error.message)
+        throw new Error(`Failed to update task positions: ${error.message}`)
     }
     return true
 }

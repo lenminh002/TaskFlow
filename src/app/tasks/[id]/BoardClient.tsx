@@ -36,20 +36,37 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
     const [activeTask, setActiveTask] = useState<Task | null>(null);
     const isDraggingRef = useRef(false);
 
+    // Performance Fix 1: Self-event cooldown
+    // After the user performs their own drag or card update, suppress incoming realtime events
+    // for 1 second to avoid redundant refetches triggered by our own writes.
+    const selfUpdateCooldownRef = useRef(false);
+    const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Performance Fix 2: Debounce timer for realtime events
+    // Collapses N rapid Postgres WAL events into a single fetchCards() call.
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    /** Activates the self-event cooldown for a given duration (default 1s). */
+    function startCooldown(ms = 1000) {
+        selfUpdateCooldownRef.current = true;
+        if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current);
+        cooldownTimerRef.current = setTimeout(() => {
+            selfUpdateCooldownRef.current = false;
+        }, ms);
+    }
+
     useEffect(() => {
         isDraggingRef.current = !!activeTask;
     }, [activeTask]);
 
-    // Rehydration State Sync Hooks
-    // Next.js Route navigation implicitly fires router.refresh() silently which passes down `initialTasks`.
-    // When the server organically hydrates us with fresh data, safely fold the results 
-    // over the local Array Grid exclusively making sure not to destroy an active dragging UX snapshot.
+    // Rehydration State Sync Hook
+    // Only fires when the server passes genuinely new initialTasks (e.g., after navigation).
+    // Does NOT fire when a drag ends — that was causing the reorder to snap back.
     useEffect(() => {
-        // Guard: Do not overwrite the DOM grid if the user is currently physically dragging a card!
-        if (!activeTask) {
+        if (!isDraggingRef.current) {
             setTasks([...initialTasks].sort((a, b) => (a.position || 0) - (b.position || 0)));
         }
-    }, [initialTasks, activeTask]);
+    }, [initialTasks]);
 
     /**
      * Collaborative Supabase Realtime Socket Setup
@@ -69,22 +86,28 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
                     table: 'tasks',
                     filter: `board_id=eq.${boardId}`
                 },
-                async (payload) => {
+                (payload) => {
                     if (process.env.NODE_ENV === 'development') {
                         console.log("⚡ Realtime Sync Fired:", payload.eventType);
                     }
 
-                    // ARCHITECTURE FIX: 
-                    // Instead of using `router.refresh()` which Next.js caches aggressively without cache invalidations,
-                    // we directly proxy the backend RPC `fetchCards` action. This perfectly forces a fresh DB lookup
-                    // bypassing all Next.js hydration issues natively.
-                    const freshCards = await fetchCards(boardId);
-
-                    // Cleanly update the screen arrays as long as a user isn't hovering midway in a drag calculation.
-                    if (!isDraggingRef.current) {
-                        const sorted = freshCards.sort((a, b) => (a.position || 0) - (b.position || 0));
-                        setTasks(sorted);
+                    // Fix 1: Skip refetch if this event was triggered by our own write
+                    if (selfUpdateCooldownRef.current) {
+                        if (process.env.NODE_ENV === 'development') {
+                            console.log("⏭️ Skipping self-triggered realtime event.");
+                        }
+                        return;
                     }
+
+                    // Fix 2: Debounce — collapse rapid events into a single fetch
+                    if (debounceRef.current) clearTimeout(debounceRef.current);
+                    debounceRef.current = setTimeout(async () => {
+                        const freshCards = await fetchCards(boardId);
+                        if (!isDraggingRef.current) {
+                            const sorted = freshCards.sort((a, b) => (a.position || 0) - (b.position || 0));
+                            setTasks(sorted);
+                        }
+                    }, 500);
                 }
             )
             .subscribe((status) => {
@@ -95,6 +118,9 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
 
         return () => {
             supabase.removeChannel(channel);
+            // Clean up pending debounce on unmount
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current);
         };
     }, [boardId]);
 
@@ -213,6 +239,7 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
         }
 
         try {
+            startCooldown(); // Suppress our own realtime events
             await updateCardDetails(id, dbUpdates);
         } catch (e) {
             // Rollback: restore the previous task state since the DB write failed.
@@ -259,9 +286,13 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
 
             if (activeIndex === -1 || (isOverTask && overIndex === -1)) return tasks;
 
-            if (isOverTask && tasks[activeIndex].status !== tasks[overIndex].status) {
+            if (isOverTask) {
                 const newTasks = [...tasks];
-                newTasks[activeIndex].status = tasks[overIndex].status;
+                // Cross-column: update the card's status to match the target column
+                if (newTasks[activeIndex].status !== newTasks[overIndex].status) {
+                    newTasks[activeIndex].status = newTasks[overIndex].status;
+                }
+                // Both same-column and cross-column: reorder the array
                 return arrayMove(newTasks, activeIndex, overIndex);
             }
 
@@ -296,30 +327,23 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
 
         const activeId = active.id as string;
         const overId = over.id as string;
+        const isOverColumn = over.data.current?.type === "Column";
 
         let updatesToSync: { id: string, position: number, status: string }[] = [];
 
-        // By processing the React array map synchronously OUTSIDE the `setTasks` pure updater function,
-        // we guarantee `updatesToSync` is populated *before* evaluating the remote DB sync conditions.
-        const activeIndex = tasks.findIndex((t) => t.id === activeId);
-        const overIndex = tasks.findIndex((t) => t.id === overId);
-        const isOverColumn = over.data.current?.type === "Column";
-
-        if (activeIndex === -1) return;
-        // Don't early return if the drop is explicitly over an empty column
-        if (!isOverColumn && overIndex === -1) return;
-
+        // handleDragOver already moved the card to the correct position in the array.
+        // Here we just need to handle the "drop onto empty column" case and recalculate positions.
         let newTasks = [...tasks];
-        
-        // If dropping onto a column directly, shift its internal status natively first.
+
+        // Special case: dropping directly onto a column container (empty column or column whitespace)
         if (isOverColumn) {
+            const activeIndex = newTasks.findIndex((t) => t.id === activeId);
+            if (activeIndex === -1) return;
             newTasks[activeIndex].status = overId as ColumnStatus;
-            // Shoving to the absolute end of the array is essentially what `arrayMove(..., idx, -1)` does anyway!
             newTasks = arrayMove(newTasks, activeIndex, newTasks.length - 1);
-        } else if (activeIndex !== overIndex) {
-            newTasks = arrayMove(newTasks, activeIndex, overIndex);
         }
 
+        // Recalculate positions for the affected column
         const status = newTasks.find(t => t.id === activeId)?.status;
         const columnTasks = newTasks.filter(t => t.status === status);
 
@@ -327,7 +351,6 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
             if (t.status === status) {
                 const idx = columnTasks.findIndex(ct => ct.id === t.id);
                 const newPos = (idx + 1) * 1000;
-                // If position drifted OR it's the exact card we just dropped, force an update payload
                 if (t.position !== newPos || t.id === activeId) {
                     updatesToSync.push({ id: t.id, position: newPos, status: t.status as string });
                     return { ...t, position: newPos };
@@ -336,11 +359,12 @@ export default function BoardClient({ boardId, initialTasks, teamMembers = [], c
             return t;
         });
 
-        // Apply updated positions locally instantly
+        // Apply updated positions locally
         setTasks(newTasks);
 
         // Sync positions to database asynchronously
         if (updatesToSync.length > 0) {
+            startCooldown(); // Suppress our own realtime events
             updateTaskPositions(updatesToSync).catch((e) => {
                 console.error("Failed to sync drag positions:", e);
             });
