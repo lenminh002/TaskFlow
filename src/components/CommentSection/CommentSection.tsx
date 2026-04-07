@@ -1,3 +1,9 @@
+/**
+ * @file CommentSection.tsx
+ * @description Real-time comment stream and activity log for individual tasks.
+ * @details Fetches existing comments on mount and provides form logic for adding new ones.
+ */
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,10 +14,17 @@ import type { Comment } from "@/type/types";
 import styles from "./CommentSection.module.css";
 import { formatDate } from "@/lib/utils";
 
+/**
+ * Props for the CommentSection component.
+ */
 interface CommentSectionProps {
+    /** The UUID of the task to which these comments belong */
     taskId: string;
 }
 
+/**
+ * Renders the task's discussion history and provides a text input for adding new messages.
+ */
 export default function CommentSection({ taskId }: CommentSectionProps) {
     const [comments, setComments] = useState<Comment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -20,6 +33,8 @@ export default function CommentSection({ taskId }: CommentSectionProps) {
     const [currentUserId, setCurrentUserId] = useState<string>("");
 
     useEffect(() => {
+        // Initialize the view by fetching the latest user session 
+        // to determine specific ownership for "Delete" button visibility.
         const supabase = createClient();
         getSessionUserId(supabase).then((userId) => setCurrentUserId(userId || ""));
 
@@ -76,8 +91,10 @@ export default function CommentSection({ taskId }: CommentSectionProps) {
                             return (
                                 <div key={comment.id} className={styles.system_activity} title={comment.id}>
                                     <strong style={{ color: '#000' }}>{comment.username === 'Unknown User' ? 'System' : comment.username}</strong>
-                                    {" "}{comment.content}{" "}
-                                    <span className={styles.system_time}>• {formatDate(comment.createdAt)}</span>
+                                    {" "}
+                                    {comment.content.toLowerCase()}
+                                    {" "}
+                                    <span className={styles.system_time}>{formatDate(comment.createdAt)}</span>
                                 </div>
                             );
                         }
@@ -100,7 +117,7 @@ export default function CommentSection({ taskId }: CommentSectionProps) {
                                         </button>
                                     )}
                                 </div>
-                                <p className={styles.content}>{comment.content}</p>
+                                <p className={styles.content}>{comment.content.toLowerCase()}</p>
                             </div>
                         );
                     })

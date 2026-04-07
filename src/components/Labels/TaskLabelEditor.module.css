@@ -1,0 +1,41 @@
+.label_list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+}
+
+.input_group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.add_button {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    background-color: #000000;
+    color: #ffffff;
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px #000;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.1s ease;
+}
+
+.add_button:hover:not(:disabled) {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px #000;
+}
+
+.add_button:active:not(:disabled) {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0px #000;
+}
+
+.add_button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #666;
+    border-color: #666;
+    box-shadow: none;
+}

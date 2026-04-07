@@ -1,3 +1,9 @@
+/**
+ * @file useAutoFocus.ts
+ * @description Custom React hook for programmatically focusing HTML elements after a mount delay.
+ * @details Useful for ensuring accessibility and UX smoothness in Portalled components like Modals.
+ */
+
 import { useEffect, useRef } from 'react';
 
 /**

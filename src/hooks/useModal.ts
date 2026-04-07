@@ -1,3 +1,8 @@
+/**
+ * @file useModal.ts
+ * @description Custom React hook for managing Boolean-based toggle states, optimized for Modal components.
+ */
+
 import { useState, useCallback } from "react";
 
 /**

@@ -1,3 +1,9 @@
+/**
+ * @file useEscapeKey.ts
+ * @description Custom React hook to capture and respond to the "Escape" key press globally.
+ * @details Primarily used for closing modals or canceling active inline edits.
+ */
+
 import { useEffect, useRef } from "react";
 
 /**

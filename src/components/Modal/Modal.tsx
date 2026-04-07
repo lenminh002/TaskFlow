@@ -1,17 +1,34 @@
+/**
+ * @file Modal.tsx
+ * @description Generic React Portal wrapper for displaying application-wide modal overlays.
+ * @details Handles backdrop clicking, event propagation, and accessibility through a shared layout.
+ */
+
 "use client";
 
 import { createPortal } from "react-dom";
 import styles from "./Modal.module.css";
 import React from "react";
 
+/**
+ * Configuration props for the Modal component.
+ */
 interface ModalProps {
+    /** Whether the modal is currently visible */
     isOpen: boolean;
+    /** Callback function to trigger when the modal should close */
     onClose: () => void;
+    /** Header title text */
     title: string;
+    /** Content to render inside the modal body */
     children: React.ReactNode;
+    /** Whether the modal can be closed by clicking the backdrop or the 'X' button */
     dismissible?: boolean;
 }
 
+/**
+ * Renders a portalled modal window over the current page content.
+ */
 export default function Modal({ isOpen, onClose, title, children, dismissible = true }: ModalProps) {
     if (!isOpen || typeof document === "undefined") return null;
 
