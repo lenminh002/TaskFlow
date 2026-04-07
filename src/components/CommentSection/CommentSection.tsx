@@ -105,7 +105,7 @@ export default function CommentSection({ taskId }: CommentSectionProps) {
                                     <span>
                                         {isSent ? "You" : comment.username}
                                         {" "}
-                                        <span className={styles.meta_time}>• {formatDate(comment.createdAt)}</span>
+                                        <span className={styles.meta_time}>- {formatDate(comment.createdAt)}</span>
                                     </span>
                                     {isSent && (
                                         <button

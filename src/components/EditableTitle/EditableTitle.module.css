@@ -1,0 +1,57 @@
+.title {
+    /* Large heading for display mode */
+    font-size: 2rem;
+    margin-top: 0;
+    margin-bottom: 1.4rem;
+    flex-shrink: 0;
+    color: inherit;
+}
+
+.input_wrapper {
+    /* Using display: inline-grid to automatically size the wrapper to its content */
+    display: inline-grid;
+    margin-top: 0;
+    margin-bottom: 1.4rem;
+    position: relative;
+}
+
+/* This hidden pseudo-element dictates the exact pixel width of the wrapper block based on precise font metrics */
+.input_wrapper::after {
+    content: attr(data-value) " ";
+    visibility: hidden;
+    white-space: pre-wrap;
+    grid-area: 1 / 1;
+    font-size: 2rem;
+    font-weight: bold;
+    padding: 0.1rem 0;
+    /* Extra space to prevent cursor clip */
+}
+
+.title_input {
+    grid-area: 1 / 1;
+    width: 100%;
+    min-width: 1em;
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0;
+    padding: 0.1rem 0;
+    border: none;
+    border-bottom: 2px solid transparent;
+    /* Neopop design: underline instead of a box */
+    background-image: linear-gradient(#000000, #000000);
+    background-position: left bottom;
+    background-repeat: no-repeat;
+    background-size: 0% 2px;
+    outline: none;
+    background-color: transparent;
+    animation: expandBorder 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+@keyframes expandBorder {
+    from {
+        background-size: 0% 2px;
+    }
+    to {
+        background-size: 100% 2px;
+    }
+}

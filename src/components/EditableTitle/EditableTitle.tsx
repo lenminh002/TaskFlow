@@ -1,24 +1,39 @@
-"use client";
-
 /**
  * @file EditableTitle.tsx
- * @description Inline-editable title component for board names.
- * @details Renders an `h1` that becomes a controlled `input` upon clicking. Saves purely to Supabase on blur/Enter.
+ * @description Inline-editable title component for board names or other entities.
+ * @details Renders an text element that becomes a controlled auto-sizing input upon clicking.
  */
+
+"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { updateBoardName } from "@/lib/actions";
-import styles from "./page.module.css";
+import styles from "./EditableTitle.module.css";
+
+interface EditableTitleProps {
+    /** The unique identifier of the entity being renamed (e.g., boardId) */
+    boardId: string;
+    /** The current display name before any edits */
+    initialName: string;
+    /** Optional CSS class for the h1 container */
+    className?: string;
+}
 
 /**
- * Manages local editing state for the board name, persisting changes to Supabase and refreshing navigation via CustomEvent.
+ * Manages local editing state for a title string, persisting changes to Supabase.
+ * Broadcasts a 'board-renamed' CustomEvent on successful server-side update.
  */
-export default function EditableTitle({ boardId, initialName }: { boardId: string; initialName: string }) {
+export default function EditableTitle({ boardId, initialName }: EditableTitleProps) {
     const [editing, setEditing] = useState(false);
     const [name, setName] = useState(initialName);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Automatically select all existing text dynamically when the user clicks to enter edit mode
+    // Sync local name state if the initial name changes externally (e.g., via sync)
+    useEffect(() => {
+        setName(initialName);
+    }, [initialName]);
+
+    // Automatically focus and select the input when entering edit mode
     useEffect(() => {
         if (editing) {
             inputRef.current?.focus();
@@ -26,27 +41,30 @@ export default function EditableTitle({ boardId, initialName }: { boardId: strin
         }
     }, [editing]);
 
-    // Persist changes to Supabase and exit edit mode, managing local rollbacks on failure
+    /**
+     * Persists changes to Supabase and exits edit mode.
+     * Manages local rollbacks if the network request fails.
+     */
     async function save() {
         setEditing(false);
         const trimmed = name.trim();
         if (!trimmed || trimmed === initialName) {
-            setName(initialName); // Revert to the original name if left blank or unchanged
+            setName(initialName); // Revert to original on blank or no change
             return;
         }
 
         try {
             const success = await updateBoardName(boardId, trimmed);
             if (success) {
-                // Broadcast a CustomEvent so disconnected UI trees (like the sidebar) resync immediately
+                // Broadcast for components that don't share React state (like Sidebar)
                 window.dispatchEvent(new CustomEvent("board-renamed", {
                     detail: { id: boardId, name: trimmed }
                 }));
             } else {
-                setName(initialName); // Rollback locally if the network payload fails
+                setName(initialName); // Rollback on explicit failure
             }
         } catch (error) {
-            console.error("Failed to update board name:", error);
+            console.error("Failed to update title:", error);
             setName(initialName); // Rollback on error
         }
     }

@@ -41,3 +41,18 @@ export function formatDate(dateStr?: Date | string): string {
     }
 }
 
+/**
+ * Generates a stable HSL color based on the label text string.
+ * @param label - The label text to hash.
+ * @returns An object with backgroundColor and color (text) in HSL format.
+ */
+export function getLabelColor(label: string) {
+    const hash = label.split("").reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
+    const hue = Math.abs(hash) % 360;
+
+    return {
+        backgroundColor: `hsl(${hue}, 70%, 90%)`,
+        color: `hsl(${hue}, 80%, 25%)`,
+    };
+}
+

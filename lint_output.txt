@@ -1,0 +1,23 @@
+
+/Users/lenguyenminh/Documents/Personal Coding Project/taskflow/TaskFlow/src/app/tasks/[id]/BoardClient.tsx
+   15:31  warning  'updateTaskPositions' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  171:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/lenguyenminh/Documents/Personal Coding Project/taskflow/TaskFlow/src/app/tasks/[id]/BoardClient.tsx:171:9
+  169 |
+  170 |     useEffect(() => {
+> 171 |         setIsMounted(true);
+      |         ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  172 |     }, []);
+  173 |
+  174 |     function startCooldown(ms = 1000) {  react-hooks/set-state-in-effect
+  249:8   warning  React Hook useEffect has a missing dependency: 'isDraggingRef'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+
+✖ 3 problems (1 error, 2 warnings)
+

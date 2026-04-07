@@ -1,35 +1,27 @@
-.filter_bar_container {
-    padding-bottom: 1rem;
-    position: sticky;
-    left: 0;
-    z-index: 10;
-    background: transparent;
-}
-
-.filter_bar {
+.top_row {
     display: flex;
-    gap: 0.5rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
     flex-wrap: wrap;
-    align-items: center;
+    padding-bottom: 1rem;
 }
 
-.filter_label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #666;
+.summary_container {
+    flex: 1 1 420px;
 }
 
-.clear_button {
-    padding: 0.25rem 0.5rem;
-    border: none;
-    background: transparent;
-    color: #888;
-    cursor: pointer;
-    font-size: 0.875rem;
-    text-decoration: underline;
-    transition: color 0.2s ease;
+.filter_bar_container {
+    flex: 1 1 320px;
+    display: flex;
+    justify-content: flex-end;
+    min-width: 260px;
 }
 
-.clear_button:hover {
-    color: #444;
+
+@media (max-width: 900px) {
+    .filter_bar_container {
+        justify-content: flex-start;
+        min-width: 100%;
+    }
 }

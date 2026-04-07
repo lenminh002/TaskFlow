@@ -7,7 +7,7 @@
 import styles from "./page.module.css";
 import BoardContainer from "./BoardContainer";
 import BoardClient from "./BoardClient";
-import EditableTitle from "./EditableTitle";
+import EditableTitle from "@/components/EditableTitle/EditableTitle";
 import AddMemberButton from "@/components/AddMemberButton";
 import { fetchCards, fetchBoardMembersFull } from "@/lib/actions";
 import { getSessionUserId } from "@/lib/auth-helpers";
@@ -68,22 +68,22 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
 
     return (
         <div className={styles.page}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-                    <EditableTitle boardId={id} initialName={boardName} />
-                    <span
-                        className={styles.creator_wrapper}
-                        style={{ fontSize: '0.85rem', fontStyle: 'italic', color: '#888' }}
-                    >
-                        created by <strong style={{ color: '#555' }}>{creatorUsername}</strong>
-                        <div className={styles.creator_tooltip}>
-                            ID: {board.user_id}
-                        </div>
-                    </span>
+            <header className={styles.header}>
+                <div className={styles.headerMain}>
+                    <div className={styles.titleRow}>
+                        <EditableTitle boardId={id} initialName={boardName} />
+                        <span className={styles.creator_wrapper}>
+                            created by <strong className={styles.creatorName}>{creatorUsername}</strong>
+                            <div className={styles.creator_tooltip}>
+                                ID: {board.user_id}
+                            </div>
+                        </span>
+                    </div>
                 </div>
+
                 {userId && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#666', fontFamily: 'monospace', padding: '0.5rem', backgroundColor: '#eee' }}>
+                    <div className={styles.headerActions}>
+                        <span className={styles.userIdBadge}>
                             Your ID: {userId}
                         </span>
                         <AddMemberButton boardId={id} />
@@ -93,10 +93,7 @@ export default async function TaskPage({ params }: { params: { id: string } }) {
 
             {/* A scrollable container clamping horizontal workflow layouts to standard screen sizes */}
             <BoardContainer className={styles.board}>
-                {/* Mount the interactive React core encapsulating state logic for drag-and-drop actions */}
                 <BoardClient key={id} boardId={id} initialTasks={cards} teamMembers={teamMembers} className={styles.columns}>
-                    <button className={styles.add_column}>+</button>
-                    {/* Inject a non-shrinking visual pad preventing the rightmost content from hugging the edge */}
                     <div style={{ minWidth: '8px', flexShrink: 0 }} />
                 </BoardClient>
             </BoardContainer>
