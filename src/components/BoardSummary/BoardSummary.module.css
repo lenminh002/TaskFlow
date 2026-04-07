@@ -7,9 +7,17 @@
 .statCard {
     min-width: 120px;
     padding: 0.75rem 0.9rem;
-    border: 2px solid #000000;
-    background: #ffffff;
-    box-shadow: 4px 4px 0 #000;
+    border: var(--border);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-fast);
+}
+
+.statCard:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgb(0, 0, 186);
+
 }
 
 .label {

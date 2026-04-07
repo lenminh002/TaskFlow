@@ -1,6 +1,29 @@
 :root {
-  --background: #ffffff;
-  --foreground: #0b0b0b;
+  /* Brand Trio Palette (Navy, Coral, Amber) */
+  --primary: #24285B;    /* Deep Navy */
+  --secondary: #FBB03B;  /* Vibrant Amber */
+  --accent: #E34C3F;     /* Coral Red */
+  --success: #22C55E;    /* Vibrant Green */
+  
+  /* Area Specifics */
+  --bg-sidebar: #24285B;
+  --bg-board: #FBB03B;   /* Amber Board */
+  --bg-card: #FFFFFF;
+  
+  /* Preserved Brutalist Styling */
+  --border: 2px solid #000000;
+  --shadow-sm: 2px 2px 0px #000000;
+  --shadow-md: 4px 4px 0px #000000;
+  --shadow-lg: 6px 6px 0px #000000;
+  --border-radius: 4px;
+  
+  /* System */
+  --background: var(--bg-board);
+  --foreground: #000000;
+  --text-on-dark: #FFFFFF;
+  
+  /* Snappy Transitions */
+  --transition-fast: all 0.1s ease;
 }
 
 html {
@@ -19,7 +42,7 @@ body {
   display: flex;
   flex-direction: column;
   color: var(--foreground);
-  background: var(--background);
+  background: #ffffff;
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

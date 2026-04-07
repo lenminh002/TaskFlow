@@ -14,9 +14,9 @@
 .modal {
     width: min(100%, 56rem);
     padding: 1.25rem;
-    background-color: #ffffff;
-    border: 2px solid #000000;
-    box-shadow: 8px 8px 0px #000;
+    background-color: var(--bg-card);
+    border: var(--border);
+    box-shadow: var(--shadow-lg);
 }
 
 .modal_header {
@@ -40,9 +40,9 @@
     line-height: 1;
     font-size: 1.5rem;
     cursor: pointer;
-    background: #ffffff;
-    border: 2px solid #000000;
-    box-shadow: 3px 3px 0px #000;
+    background: var(--bg-card);
+    border: var(--border);
+    box-shadow: var(--shadow-sm);
 }
 
 .modal_close:hover {
@@ -146,19 +146,19 @@
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
-    background-color: #000000;
+    background-color: var(--accent);
     color: #ffffff;
-    border: 2px solid #000000;
-    box-shadow: 4px 4px 0px #000;
-    transition: all 0.1s ease;
+    border: var(--border);
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-fast);
 }
 
 .modal_submit:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
+    box-shadow: var(--shadow-lg);
 }
 
 .modal_submit:active {
     transform: translate(2px, 2px);
-    box-shadow: 2px 2px 0px #000;
+    box-shadow: var(--shadow-sm);
 }

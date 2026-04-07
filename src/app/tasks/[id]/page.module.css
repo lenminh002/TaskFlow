@@ -61,23 +61,35 @@
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior: contain;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
     padding: 2rem;
-    border: 2px solid #000000;
-    background-color: #e4e4e4;
-    box-shadow: 0px 0px 5px #000;
-
+    border: var(--border);
+    background-color: var(--bg-board);
+    box-shadow: var(--shadow-sm);
 }
 
-
+.board::-webkit-scrollbar {
+    display: none;
+}
 
 .add_column {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    border: 2px dashed #000000;
+    border: var(--border);
     cursor: pointer;
     font-size: 1.5rem;
     display: flex;
+    background: var(--primary);
+    color: white;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-fast);
+    background: var(--secondary);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-fast);
     align-items: center;
     justify-content: center;
     background: transparent;
